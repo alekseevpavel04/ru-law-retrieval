@@ -1,0 +1,26 @@
+{
+ "e5-small/full corpus": {
+  "ndcg@10": 0.847,
+  "recall@5": 0.9324,
+  "recall@10": 0.9865,
+  "mrr@10": 0.8018
+ },
+ "e5-small/TK only": {
+  "ndcg@10": 0.8561,
+  "recall@5": 0.9595,
+  "recall@10": 0.9865,
+  "mrr@10": 0.8135
+ },
+ "ft-e5-small/full corpus": {
+  "ndcg@10": 0.8557,
+  "recall@5": 0.9595,
+  "recall@10": 0.9595,
+  "mrr@10": 0.8203
+ },
+ "ft-e5-small/TK only": {
+  "ndcg@10": 0.8607,
+  "recall@5": 0.9595,
+  "recall@10": 0.973,
+  "mrr@10": 0.8229
+ }
+}

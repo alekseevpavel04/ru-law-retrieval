@@ -21,6 +21,7 @@ COMMANDS: dict[str, tuple[str, str]] = {
     "export-mteb": ("rlr.data.export_mteb", "export dataset in MTEB retrieval format"),
     "baselines": ("rlr.eval.run_baselines", "evaluate baseline models"),
     "mine": ("rlr.train.mine_negatives", "mine hard negatives"),
+    "teacher": ("rlr.train.teacher", "teacher (FRIDA) positives, negatives and distillation labels"),
     "train": ("rlr.train.train", "fine-tune an embedding model"),
     "evaluate": ("rlr.eval.run_baselines", "evaluate a (fine-tuned) model"),
     "bootstrap": ("rlr.eval.bootstrap", "paired bootstrap significance"),

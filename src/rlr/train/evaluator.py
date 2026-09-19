@@ -20,7 +20,7 @@ class DevRetrievalEvaluator(SentenceEvaluator):
     def __init__(
         self,
         queries: list[dict],
-        corpus: Corpus,
+        corpus: Corpus | dict[str, Corpus],
         query_prompt: str = "query: ",
         doc_prompt: str = "passage: ",
         best_dir: Path | None = None,
@@ -29,7 +29,8 @@ class DevRetrievalEvaluator(SentenceEvaluator):
     ) -> None:
         super().__init__()
         self.queries = queries
-        self.corpus = corpus
+        # one or several corpus views; with several, the primary metric is the mean nDCG@10 over views
+        self.corpora = corpus if isinstance(corpus, dict) else {"chunk": corpus}
         self.query_prompt = query_prompt
         self.doc_prompt = doc_prompt
         self.best_dir = best_dir
@@ -60,14 +61,22 @@ class DevRetrievalEvaluator(SentenceEvaluator):
         t0 = time.time()
         was_training = model.training
         model.eval()
-        unit_emb = self._encode(model, self.corpus.texts, self.doc_prompt)
         q_emb = self._encode(model, [q["text"] for q in self.queries], self.query_prompt)
-        run = dense_search(q_emb, unit_emb, self.corpus)
-        per_query = [query_metrics([d for d, _ in r], q["qrels"]) for q, r in zip(self.queries, run, strict=True)]
-        metrics = mean_metrics(per_query)
-        for slice_name in sorted({q.get("slice", "") for q in self.queries}):
-            sub = [m for m, q in zip(per_query, self.queries, strict=True) if q.get("slice", "") == slice_name]
-            metrics[f"ndcg@10_{slice_name}"] = mean_metrics(sub)["ndcg@10"]
+        view_metrics = {}
+        for view, corpus in self.corpora.items():
+            unit_emb = self._encode(model, corpus.texts, self.doc_prompt)
+            run = dense_search(q_emb, unit_emb, corpus)
+            per_query = [query_metrics([d for d, _ in r], q["qrels"]) for q, r in zip(self.queries, run, strict=True)]
+            m = mean_metrics(per_query)
+            for slice_name in sorted({q.get("slice", "") for q in self.queries}):
+                sub = [pm for pm, q in zip(per_query, self.queries, strict=True) if q.get("slice", "") == slice_name]
+                m[f"ndcg@10_{slice_name}"] = mean_metrics(sub)["ndcg@10"]
+            view_metrics[view] = m
+        first = next(iter(view_metrics.values()))
+        metrics = {k: float(np.mean([vm[k] for vm in view_metrics.values()])) for k in first}
+        if len(view_metrics) > 1:
+            for view, vm in view_metrics.items():
+                metrics[f"ndcg@10_view_{view}"] = vm["ndcg@10"]
         if was_training:
             model.train()
 

@@ -123,12 +123,34 @@ def token_lengths(texts: list[str], prefix: str, model_name: str) -> list[int]:
     return lengths
 
 
+def write_view(view: str, chunk_size: int, overlap: int, code_header: bool) -> None:
+    """An alternative chunk view of the same articles (used for format-robust training and dev)."""
+    display = codes_config()["display"]
+    chunks = []
+    for a in read_jsonl(CORPUS / "articles.jsonl"):
+        header = doc_header(display[a["code"]], a["number"], a["title"])
+        if not code_header:
+            header = header.split(", ", 1)[1]  # "Статья N. Title"
+        chunks += chunk_article(a["doc_id"], header, a["text"], chunk_size, overlap)
+    write_jsonl(CORPUS / f"{view}.jsonl", [{**asdict(c), "text": c.text} for c in chunks])
+    print(f"{view}: {len(chunks)} chunks ({chunk_size}/{overlap}, code header: {code_header})")
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="rlr chunk")
     parser.add_argument("--chunk-size", type=int, default=600)
     parser.add_argument("--overlap", type=int, default=90)
     parser.add_argument("--tokenizer", default="intfloat/multilingual-e5-small")
+    parser.add_argument(
+        "--view",
+        default="chunk",
+        help="'chunk' (main view) or another name, e.g. 'chunk_tkfmt' for the tk-rf-rag format (writes only chunks)",
+    )
+    parser.add_argument("--no-code-header", action="store_true", help="header 'Статья N. Title' without the code name")
     args = parser.parse_args(argv)
+    if args.view != "chunk":
+        write_view(args.view, args.chunk_size, args.overlap, code_header=not args.no_code_header)
+        return
 
     display = codes_config()["display"]
     articles = read_jsonl(CORPUS / "articles.jsonl")

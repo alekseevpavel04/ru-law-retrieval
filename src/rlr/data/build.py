@@ -101,10 +101,13 @@ def build_eval(articles: dict, splits: dict, counts: Counter) -> list[dict]:
     return [q for q, d in zip(out, dup, strict=True) if not d]
 
 
-def build_train_raw(articles: dict, splits: dict, counts: Counter) -> list[dict]:
+def build_train_raw(
+    articles: dict, splits: dict, counts: Counter, raw_files: tuple[str, ...] = ("train_raw.jsonl",)
+) -> list[dict]:
     held = set(splits["held_out"])
     out = []
-    for r in read_jsonl(GEN / "train_raw.jsonl"):
+    raw_rows = [r for f in raw_files for r in read_jsonl(GEN / f)]
+    for r in raw_rows:
         a = articles[r["doc_id"]]
         assert r["doc_id"] not in held and a["group"] == "in_domain"
         text = article_parts(a["text"])[r["part"]]
@@ -118,9 +121,11 @@ def build_train_raw(articles: dict, splits: dict, counts: Counter) -> list[dict]
             if reason:
                 counts[f"train_drop_{reason}"] += 1
                 continue
+            version = r.get("prompt_version", "v1")
             out.append(
                 {
-                    "qid": f"tr-{r['doc_id']}-{r['part']}-{qtype}",
+                    "qid": f"tr-{r['doc_id']}-{r['part']}-{qtype}" + ("" if version == "v1" else f"-{version}"),
+                    "prompt_version": version,
                     "text": q,
                     "split": "train",
                     "qtype": qtype,
@@ -135,8 +140,138 @@ def build_train_raw(articles: dict, splits: dict, counts: Counter) -> list[dict]
     return [q for q, d in zip(out, dup, strict=True) if not d]
 
 
+def build_tkhard(articles: dict, train_emb_sets: list[np.ndarray], enc, counts: Counter) -> list[dict]:
+    """Harder extra TK test set (everyday + search). Test-only: items too close to ANY train question
+    (v1 or v2) are dropped from the test side, so no model saw a near-copy of a test question."""
+    judged = {r["key"]: r["answerable"] for r in read_jsonl(GEN / "tkhard_judged.jsonl")}
+    out = []
+    for r in read_jsonl(GEN / "tkhard_raw.jsonl"):
+        counts["tkhard_generated"] += 1
+        q = ((r.get("output") or {}).get("question") or "").strip()
+        if not q:
+            counts["tkhard_drop_invalid_json"] += 1
+            continue
+        text = article_parts(articles[r["doc_id"]]["text"])[r["part"]]
+        reason = run_filters(q, r["qtype"], text, copy_check=False)
+        if reason:
+            counts[f"tkhard_drop_{reason}"] += 1
+            continue
+        if judged.get(r["key"]) != "yes":
+            counts["tkhard_drop_judge_" + str(judged.get(r["key"], "missing"))] += 1
+            continue
+        out.append(
+            {
+                "qid": f"tkhard-{r['doc_id']}-{r['qtype']}",
+                "text": q,
+                "split": "tk_hard",
+                "slice": r["slice"],
+                "qtype": r["qtype"],
+                "code": "tk",
+                "doc_id": r["doc_id"],
+                "qrels": {r["doc_id"]: 1},
+                "generator": r["model"],
+            }
+        )
+    dup = exact_duplicates(q["text"] for q in out)
+    counts["tkhard_drop_exact_dup"] += sum(dup)
+    out = [q for q, d in zip(out, dup, strict=True) if not d]
+    emb = enc.encode_queries([q["text"] for q in out])
+    near = np.zeros(len(out), dtype=bool)
+    for ref in train_emb_sets:
+        near |= near_dup_against(emb, ref, NEAR_DUP)
+    counts["tkhard_drop_near_dup_of_train"] += int(near.sum())
+    return [q for q, d in zip(out, near, strict=True) if not d]
+
+
+def build_train_extra(raw_files: tuple[str, ...], out_name: str) -> None:
+    """Train set from several raw generation files (v1 + v2) without touching dev/test/titles.
+
+    Same filters and dedup as the main build; near-duplicates of dev, test and tk_hard questions are removed
+    from train. Positive chunk = best chunk of the own article by base e5-small (as in v1)."""
+    counts: Counter = Counter()
+    articles = {a["doc_id"]: a for a in read_jsonl(CORPUS / "articles.jsonl")}
+    splits = json.loads((SPLITS / "splits.json").read_text(encoding="utf-8"))
+    chunks = read_jsonl(CORPUS / "chunks.jsonl")
+    chunks_by_doc: dict[str, list[dict]] = defaultdict(list)
+    for c in chunks:
+        chunks_by_doc[c["doc_id"]].append(c)
+    train_q = build_train_raw(articles, splits, counts, raw_files)
+    eval_q = read_jsonl(DATASET / "dev.jsonl") + read_jsonl(DATASET / "test.jsonl")
+    if (DATASET / "tk_hard.jsonl").exists():
+        eval_q += read_jsonl(DATASET / "tk_hard.jsonl")
+    enc = load_encoder()
+    train_emb = enc.encode_queries([q["text"] for q in train_q])
+    eval_emb = enc.encode_queries([q["text"] for q in eval_q])
+    within = near_dup_within(train_emb, NEAR_DUP)
+    against = near_dup_against(train_emb, eval_emb, NEAR_DUP) & ~within
+    counts["train_drop_near_dup"] += int(within.sum())
+    counts["train_drop_near_dup_of_eval"] += int(against.sum())
+    keep = ~(within | against)
+    train_q = [q for q, k in zip(train_q, keep, strict=True) if k]
+    train_emb = train_emb[keep]
+    chunk_emb = enc.encode_corpus(_chunk_corpus(chunks), cache_key="e5-small")
+    chunk_index = {c["chunk_id"]: i for i, c in enumerate(chunks)}
+    for q, e in zip(train_q, train_emb, strict=True):
+        own = chunks_by_doc[q["doc_id"]]
+        best = int(np.argmax(chunk_emb[[chunk_index[c["chunk_id"]] for c in own]] @ e))
+        q["pos_chunk_id"], q["pos_text"] = own[best]["chunk_id"], own[best]["text"]
+    write_jsonl(DATASET / f"{out_name}.jsonl", train_q)
+    stats = {
+        "raw_files": list(raw_files),
+        "filters": dict(sorted(counts.items())),
+        "train": len(train_q),
+        "by_prompt_version": dict(Counter(q["prompt_version"] for q in train_q)),
+        "by_type": dict(Counter(q["qtype"] for q in train_q)),
+        "by_code": dict(Counter(q["code"] for q in train_q)),
+    }
+    (RESULTS / f"dataset_stats_{out_name}.json").write_text(
+        json.dumps(stats, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
+    print(json.dumps(stats, ensure_ascii=False, indent=1))
+
+
+def build_tkhard_main() -> None:
+    counts: Counter = Counter()
+    articles = {a["doc_id"]: a for a in read_jsonl(CORPUS / "articles.jsonl")}
+    enc = load_encoder()
+    refs = []
+    for name in ("train_llm", "train_llm_v12"):
+        if (DATASET / f"{name}.jsonl").exists():
+            refs.append(enc.encode_queries([q["text"] for q in read_jsonl(DATASET / f"{name}.jsonl")]))
+    if (GEN / "train_raw_v2.jsonl").exists():  # raw v2 questions too (before its own dedup)
+        v2 = [
+            ((r.get("output") or {}).get(t) or "").strip()
+            for r in read_jsonl(GEN / "train_raw_v2.jsonl")
+            for t in QUESTION_TYPES
+        ]
+        refs.append(enc.encode_queries([t for t in v2 if t]))
+    rows = build_tkhard(articles, refs, enc, counts)
+    write_jsonl(DATASET / "tk_hard.jsonl", rows)
+    stats = {
+        "filters": dict(sorted(counts.items())),
+        "tk_hard": len(rows),
+        "by_slice_type": {
+            f"{s}/{t}": n for (s, t), n in sorted(Counter((q["slice"], q["qtype"]) for q in rows).items())
+        },
+    }
+    (RESULTS / "dataset_stats_tk_hard.json").write_text(
+        json.dumps(stats, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
+    print(json.dumps(stats, ensure_ascii=False, indent=1))
+
+
 def main(argv: list[str] | None = None) -> None:
-    argparse.ArgumentParser(prog="rlr build-dataset").parse_args(argv)
+    parser = argparse.ArgumentParser(prog="rlr build-dataset")
+    parser.add_argument("--train-raw", nargs="*", help="build only a train set from these raw files (v1 + v2)")
+    parser.add_argument("--train-out", default="train_llm_v12")
+    parser.add_argument("--tk-hard", action="store_true", help="build only the tk_hard test set")
+    args = parser.parse_args(argv)
+    if args.tk_hard:
+        build_tkhard_main()
+        return
+    if args.train_raw:
+        build_train_extra(tuple(args.train_raw), args.train_out)
+        return
     counts: Counter = Counter()
     articles = {a["doc_id"]: a for a in read_jsonl(CORPUS / "articles.jsonl")}
     splits = json.loads((SPLITS / "splits.json").read_text(encoding="utf-8"))

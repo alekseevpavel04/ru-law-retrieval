@@ -11,6 +11,7 @@ interrupted run resumes where it stopped.
 Usage:
   python -m rlr generate --mode train --out data/gen/train_raw.jsonl [--limit 10]
   python -m rlr generate --mode eval  --out data/gen/eval_raw.jsonl  [--limit 10]
+  python -m rlr generate --mode tkhard --out data/gen/tkhard_raw.jsonl   # harder TK test set
 """
 
 import argparse
@@ -55,6 +56,31 @@ def build_tasks(mode: str, limit: int, sample_seed: int = 0) -> list[dict]:
             header = doc_header(display[a["code"]], a["number"], a["title"])
             for i, part in enumerate(article_parts(a["text"])):
                 tasks.append({"key": f"{doc_id}|{i}", "doc_id": doc_id, "part": i, "header": header, "text": part})
+    elif mode == "tkhard":
+        # harder extra test set for the TK service: everyday + search questions for every TK article except
+        # dev articles (dev is only for model selection); test-only, never used for choosing anything
+        dev_articles = {it["doc_id"] for it in splits["eval_items"] if it["split"] == "dev"}
+        held = set(splits["held_out"])
+        for a in articles.values():
+            if a["code"] != "tk" or a["doc_id"] in dev_articles or len(a["text"]) < 150:
+                continue
+            header = doc_header(display[a["code"]], a["number"], a["title"])
+            parts = article_parts(a["text"])
+            i = random.Random(stable_seed("tkhard" + a["doc_id"])).randrange(len(parts))
+            slice_name = "unseen_articles" if a["doc_id"] in held else "seen"
+            for qtype in ("everyday", "search"):
+                tasks.append(
+                    {
+                        "key": f"tkhard|{a['doc_id']}|{qtype}",
+                        "split": "tk_hard",
+                        "slice": slice_name,
+                        "doc_id": a["doc_id"],
+                        "qtype": qtype,
+                        "part": i,
+                        "header": header,
+                        "text": parts[i],
+                    }
+                )
     else:
         for it in splits["eval_items"]:
             a = articles[it["doc_id"]]
@@ -68,9 +94,10 @@ def build_tasks(mode: str, limit: int, sample_seed: int = 0) -> list[dict]:
     return tasks
 
 
-def messages_for(mode: str, task: dict) -> tuple[list[dict], dict]:
+def messages_for(mode: str, task: dict, prompt_version: str = "v1") -> tuple[list[dict], dict]:
     if mode == "train":
-        user = prompts.TRAIN_USER.format(header=task["header"], text=task["text"])
+        template = prompts.TRAIN_USER_V2 if prompt_version == "v2" else prompts.TRAIN_USER
+        user = template.format(header=task["header"], text=task["text"])
         return [{"role": "system", "content": prompts.TRAIN_SYSTEM}, {"role": "user", "content": user}], (
             prompts.TRAIN_SCHEMA
         )
@@ -95,13 +122,14 @@ def done_keys(path: Path) -> set[str]:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="rlr generate")
-    parser.add_argument("--mode", choices=["train", "eval"], required=True)
+    parser.add_argument("--mode", choices=["train", "eval", "tkhard"], required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--limit", type=int, default=0, help="random sample of N tasks (probe)")
     parser.add_argument("--workers", type=int, default=3, help="parallel requests (= server slots)")
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--base-url", default=None)
+    parser.add_argument("--prompt-version", choices=["v1", "v2"], default="v1", help="train prompt variant")
     args = parser.parse_args(argv)
 
     out = Path(args.out)
@@ -118,13 +146,21 @@ def main(argv: list[str] | None = None) -> None:
     n_done, n_tokens = 0, 0
 
     def run(task: dict) -> dict:
-        messages, schema = messages_for(args.mode, task)
+        messages, schema = messages_for(args.mode, task, args.prompt_version)
         t0 = time.time()
         parsed, raw, usage = client.chat_json(
             messages, schema, temperature=args.temperature, seed=stable_seed(task["key"], args.seed)
         )
         row = {k: v for k, v in task.items() if k not in ("header", "text")}
-        return {**row, "model": model, "output": parsed, "raw": raw, "usage": usage, "seconds": time.time() - t0}
+        return {
+            **row,
+            "model": model,
+            "prompt_version": args.prompt_version,
+            "output": parsed,
+            "raw": raw,
+            "usage": usage,
+            "seconds": time.time() - t0,
+        }
 
     with out.open("a", encoding="utf-8") as f, ThreadPoolExecutor(args.workers) as pool:
         futures = [pool.submit(run, t) for t in todo]

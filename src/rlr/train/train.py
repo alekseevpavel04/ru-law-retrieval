@@ -84,6 +84,46 @@ def load_rows(cfg: dict) -> tuple[list[dict], dict]:
     return rows, info
 
 
+def load_teacher_rows(cfg: dict) -> tuple[list[dict], dict]:
+    """v2 rows annotated by the teacher (``rlr teacher``): noise filter, data fraction, format augmentation."""
+    rows = read_jsonl(DATASET / f"{cfg['train_file']}.jsonl")
+    info: dict = {"rows_total": len(rows)}
+    if cfg.get("prompt_versions"):
+        rows = [r for r in rows if r["prompt_version"] in cfg["prompt_versions"]]
+        info["rows_prompt_versions"] = len(rows)
+    k = cfg.get("teacher_filter_rank")
+    if k:
+        kept = [r for r in rows if r["teacher_gold_rank"] <= k]
+        info["dropped_by_teacher_rank"] = len(rows) - len(kept)
+        rows = kept
+    frac = cfg.get("fraction", 1.0)
+    if frac < 1.0:
+        order = list(range(len(rows)))
+        random.Random(cfg.get("fraction_seed", 0)).shuffle(order)
+        rows = [rows[i] for i in sorted(order[: round(len(rows) * frac)])]
+    p = cfg.get("format_aug", 0.0)
+    rng = random.Random(cfg["seed"])
+    n_aug = 0
+    for r in rows:
+        if p > 0 and rng.random() < p:  # the same question with chunks in the tk-rf-rag format (500/75, no code)
+            r["pos_text"], r["neg_text"] = r["pos_b_text"], r["neg_b_text"]
+            r["cand_texts"], r["labels"] = r["cand_b_texts"], r["labels_b"]
+            n_aug += 1
+    info["format_aug_rows"] = n_aug
+    info["rows"] = len(rows)
+    return rows, info
+
+
+def to_distill_dataset(rows: list[dict], teacher_temperature: float) -> Dataset:
+    """(query, positive, cand_1..cand_n) with teacher logits = cosine / teacher_temperature."""
+    n = len(rows[0]["cand_texts"])
+    cols: dict[str, list] = {"query": [r["text"] for r in rows], "positive": [r["pos_text"] for r in rows]}
+    for i in range(n):
+        cols[f"cand_{i}"] = [r["cand_texts"][i] for r in rows]
+    cols["label"] = [[v / teacher_temperature for v in r["labels"]] for r in rows]
+    return Dataset.from_dict(cols)
+
+
 def to_dataset(rows: list[dict], hn: bool) -> tuple[Dataset, list[frozenset[str]]]:
     cols: dict[str, list[str]] = {"anchor": [r["text"] for r in rows], "positive": [r["pos_text"] for r in rows]}
     keys = []
@@ -103,7 +143,11 @@ def run(cfg: dict, max_steps: int = -1, use_wandb: bool = False, out_name: str |
         SentenceTransformerTrainer,
         SentenceTransformerTrainingArguments,
     )
-    from sentence_transformers.sentence_transformer.losses import CachedMultipleNegativesRankingLoss
+    from sentence_transformers.sentence_transformer.losses import (
+        CachedMultipleNegativesRankingLoss,
+        DistillKLDivLoss,
+    )
+    from sentence_transformers.util import pairwise_dot_score
     from transformers import TrainerCallback
 
     name = out_name or cfg["name"]
@@ -114,11 +158,19 @@ def run(cfg: dict, max_steps: int = -1, use_wandb: bool = False, out_name: str |
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
 
-    rows, data_info = load_rows(cfg)
-    hn = cfg.get("hard_negatives", False)
-    train_ds, row_keys = to_dataset(rows, hn)
+    loss_name = cfg.get("loss", "mnrl")
+    if cfg.get("train_file"):
+        rows, data_info = load_teacher_rows(cfg)
+        hn = cfg.get("negatives", "teacher") == "teacher"
+    else:
+        rows, data_info = load_rows(cfg)
+        hn = cfg.get("hard_negatives", False)
+    if loss_name == "distill_kl":
+        train_ds, row_keys = to_distill_dataset(rows, cfg.get("teacher_temperature", 0.05)), None
+    else:
+        train_ds, row_keys = to_dataset(rows, hn)
     dev = read_jsonl(DATASET / "dev.jsonl")
-    corpus = load_corpus("chunk")
+    corpus = {view: load_corpus(view) for view in cfg.get("dev_views", ["chunk"])}
 
     model = SentenceTransformer(cfg["base_model"], device="cuda")
     model.max_seq_length = cfg["max_seq_length"]
@@ -137,9 +189,18 @@ def run(cfg: dict, max_steps: int = -1, use_wandb: bool = False, out_name: str |
     total_steps = max_steps if max_steps > 0 else round(steps_per_epoch * cfg["epochs"])
     eval_steps = max(1, round(steps_per_epoch * cfg.get("eval_every", 0.25)))
 
-    loss = CachedMultipleNegativesRankingLoss(
-        model, mini_batch_size=cfg["mini_batch_size"], scale=cfg.get("scale", 20.0)
-    )
+    if loss_name == "distill_kl":
+        # student logits = scale * cosine (as in MNRL), teacher logits = cosine / teacher_temperature;
+        # temperature=1 inside the loss, so gradients are not shrunk by T^2
+        scale = cfg.get("scale", 20.0)
+        loss = DistillKLDivLoss(model, similarity_fct=lambda a, b: scale * pairwise_dot_score(a, b), temperature=1.0)
+    else:
+        loss = CachedMultipleNegativesRankingLoss(
+            model, mini_batch_size=cfg["mini_batch_size"], scale=cfg.get("scale", 20.0)
+        )
+    prompts = {
+        c: ("query: " if c in ("anchor", "query") else "passage: ") for c in train_ds.column_names if c != "label"
+    }
     args = SentenceTransformerTrainingArguments(
         output_dir=str(out_dir / "trainer"),
         num_train_epochs=cfg["epochs"],
@@ -151,8 +212,8 @@ def run(cfg: dict, max_steps: int = -1, use_wandb: bool = False, out_name: str |
         weight_decay=cfg.get("weight_decay", 0.01),
         bf16=True,
         tf32=True,
-        batch_sampler=make_sampler_factory(row_keys),
-        prompts={"anchor": "query: ", "positive": "passage: ", "negative": "passage: "},
+        batch_sampler=make_sampler_factory(row_keys) if row_keys is not None else "batch_sampler",
+        prompts=prompts,
         eval_strategy="steps" if max_steps < 0 or max_steps > eval_steps else "no",
         eval_steps=eval_steps,
         save_strategy="no",

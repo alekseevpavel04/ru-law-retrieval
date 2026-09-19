@@ -38,7 +38,8 @@ def load_corpus(view: str) -> Corpus:
     if view == "article":
         texts = [f"{d['title']}\n{d['text']}" for d in docs]
         return Corpus(view, article_ids, texts, np.arange(len(docs)), article_ids)
-    chunks = read_jsonl(CORPUS / "chunks.jsonl")
+    # "chunk" -> chunks.jsonl; any other view name -> <view>.jsonl (e.g. chunk_tkfmt)
+    chunks = read_jsonl(CORPUS / ("chunks.jsonl" if view == "chunk" else f"{view}.jsonl"))
     return Corpus(
         view,
         [c["chunk_id"] for c in chunks],

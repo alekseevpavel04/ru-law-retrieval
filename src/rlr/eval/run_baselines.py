@@ -64,6 +64,7 @@ def load_query_sets(names: list[str]) -> dict[str, list[dict]]:
         "test": DATASET / "test.jsonl",
         "golden": DATASET / "golden.jsonl",
         "external": EXTERNAL,
+        "tk_hard": DATASET / "tk_hard.jsonl",
     }
     out = {}
     for n in names:
@@ -89,6 +90,16 @@ def summarize(rows: list[dict]) -> dict:
     return out
 
 
+def merge_previous(name: str, per_query: list[dict]) -> list[dict]:
+    """Keep earlier per-query results of this model for (set, protocol) pairs not re-evaluated now."""
+    path = RESULTS / "per_query" / f"{name}.csv"
+    if not path.exists():
+        return per_query
+    new_keys = {(r["set"], r["protocol"]) for r in per_query}
+    old = pd.read_csv(path, dtype={"qid": str}).to_dict("records")
+    return [r for r in old if (r["set"], r["protocol"]) not in new_keys] + per_query
+
+
 def write_results(name: str, per_query: list[dict], meta: dict) -> None:
     (RESULTS / "per_query").mkdir(parents=True, exist_ok=True)
     (RESULTS / "summary").mkdir(parents=True, exist_ok=True)
@@ -105,6 +116,7 @@ def write_results(name: str, per_query: list[dict], meta: dict) -> None:
 def eval_dense(
     enc: DenseEncoder, query_sets: dict[str, list[dict]], protocols=PROTOCOLS, cache_key: str | None = None
 ) -> tuple[list[dict], dict]:
+    """Protocols: article, chunk (main 600/90 view) or any other chunk view, e.g. chunk_tkfmt."""
     per_query, timing = [], {}
     for protocol in protocols:
         corpus = load_corpus(protocol)
@@ -119,9 +131,9 @@ def eval_dense(
     return per_query, timing
 
 
-def eval_bm25(query_sets: dict[str, list[dict]], cfg: dict) -> list[dict]:
+def eval_bm25(query_sets: dict[str, list[dict]], cfg: dict, protocols=PROTOCOLS) -> list[dict]:
     per_query = []
-    for protocol in PROTOCOLS:
+    for protocol in protocols:
         retr = BM25Retriever(load_corpus(protocol), cfg["k1"], cfg["b"], cfg["stemmer"])
         for qset, queries in query_sets.items():
             run = retr.search([q["text"] for q in queries])
@@ -130,10 +142,12 @@ def eval_bm25(query_sets: dict[str, list[dict]], cfg: dict) -> list[dict]:
     return per_query
 
 
-def eval_hybrid(names: list[str], query_sets: dict[str, list[dict]], k: int) -> tuple[str, list[dict]]:
+def eval_hybrid(
+    names: list[str], query_sets: dict[str, list[dict]], k: int, protocols=PROTOCOLS
+) -> tuple[str, list[dict]]:
     hybrid = "RRF(" + "+".join(names) + ")"
     per_query = []
-    for protocol in PROTOCOLS:
+    for protocol in protocols:
         for qset, queries in query_sets.items():
             runs = []
             for n in names:
@@ -165,6 +179,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--config", default="baselines.yaml")
     parser.add_argument("--models", nargs="*", help="model names from the config (default: all)")
     parser.add_argument("--sets", nargs="*", default=["dev", "test", "golden", "external"])
+    parser.add_argument("--protocols", nargs="*", default=list(PROTOCOLS), help="article chunk [chunk_tkfmt]")
     parser.add_argument("--bm25", action="store_true", help="also evaluate BM25")
     parser.add_argument("--no-dense", action="store_true")
     parser.add_argument("--hybrid", nargs="*", help="RRF of saved runs, e.g. BM25 e5-large")
@@ -180,13 +195,18 @@ def main(argv: list[str] | None = None) -> None:
     print({k: len(v) for k, v in query_sets.items()}, flush=True)
 
     if args.hybrid:
-        name, per_query = eval_hybrid(args.hybrid, query_sets, cfg["rrf_k"])
+        name, per_query = eval_hybrid(args.hybrid, query_sets, cfg["rrf_k"], args.protocols)
+        per_query = merge_previous(name, per_query)
         write_results(name, per_query, {"type": "hybrid", "components": args.hybrid, "rrf_k": cfg["rrf_k"]})
         print_table([name])
         return
 
     if args.bm25:
-        write_results("BM25", eval_bm25(query_sets, cfg["bm25"]), {"type": "bm25", **cfg["bm25"]})
+        write_results(
+            "BM25",
+            merge_previous("BM25", eval_bm25(query_sets, cfg["bm25"], args.protocols)),
+            {"type": "bm25", **cfg["bm25"]},
+        )
         print_table(["BM25"])
 
     models = []
@@ -210,7 +230,8 @@ def main(argv: list[str] | None = None) -> None:
             name=m["name"],
         )
         n_params = sum(p.numel() for p in enc.model.parameters())
-        per_query, timing = eval_dense(enc, query_sets)
+        per_query, timing = eval_dense(enc, query_sets, args.protocols)
+        per_query = merge_previous(m["name"], per_query)
         meta = {
             "type": "dense",
             "path": m["path"],

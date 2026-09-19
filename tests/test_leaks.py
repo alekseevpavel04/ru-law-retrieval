@@ -75,3 +75,29 @@ def test_golden_is_subset_of_test(data):
     *_, test, golden = data
     test_ids = {q["qid"] for q in test}
     assert all(q["qid"] in test_ids for q in golden)
+
+
+TK_HARD = DATASET / "tk_hard.jsonl"
+
+
+@pytest.mark.skipif(not TK_HARD.exists(), reason="tk_hard not built")
+def test_tk_hard_is_disjoint_from_dev_and_train(data):
+    _, articles, train, dev, _, _ = data
+    tk_hard = read_jsonl(TK_HARD)
+    dev_articles = {q["doc_id"] for q in dev}
+    train_texts = {normalize(q["text"]) for q in train}
+    for extra in ("train_llm_v12.jsonl",):
+        if (DATASET / extra).exists():
+            train_texts |= {normalize(q["text"]) for q in read_jsonl(DATASET / extra)}
+    for q in tk_hard:
+        assert q["doc_id"] not in dev_articles, q["qid"]
+        assert normalize(q["text"]) not in train_texts, q["qid"]
+        assert articles[q["doc_id"]]["code"] == "tk"
+
+
+@pytest.mark.skipif(not (DATASET / "train_llm_v12.jsonl").exists(), reason="v2 train not built")
+def test_v2_train_respects_held_out_articles(data):
+    splits, articles, *_ = data
+    held = set(splits["held_out"])
+    for q in read_jsonl(DATASET / "train_llm_v12.jsonl"):
+        assert q["doc_id"] not in held and articles[q["doc_id"]]["group"] == "in_domain", q["qid"]
