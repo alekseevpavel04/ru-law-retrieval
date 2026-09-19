@@ -1,0 +1,29 @@
+# agent / system files
+PROMPT.md
+CLAUDE.md
+docs/TASK.md
+.claude/
+
+# env
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# heavy artifacts
+data/*
+!data/README.md
+!data/samples/
+models/
+checkpoints/
+runs/
+cache/
+logs/
+*.gguf
+*.safetensors
+*.bin
+wandb/
+*.egg-info/
+logs_download.txt

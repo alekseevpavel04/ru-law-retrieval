@@ -1,0 +1,25 @@
+# Codes of law used in the corpus. Source: legalacts.ru.
+# layout: "full"  -> the whole code is one page (split by article headers)
+#         "toc"   -> the page is a table of contents with one page per article
+# group:  "in_domain" codes get training questions, "ood" codes are test-only.
+source: https://legalacts.ru
+user_agent: "Mozilla/5.0 (compatible; ru-law-retrieval research; +https://github.com/alekseevpavel04/ru-law-retrieval)"
+delay: 0.4
+codes:
+  - {code: tk,    name: "Трудовой кодекс РФ",                        path: /kodeks/TK-RF/,         layout: full, group: in_domain}
+  - {code: gk,    name: "Гражданский кодекс РФ (часть первая)",      path: /kodeks/GK-RF-chast-1/, layout: full, group: in_domain}
+  - {code: gk,    name: "Гражданский кодекс РФ (часть вторая)",      path: /kodeks/GK-RF-chast-2/, layout: full, group: in_domain}
+  - {code: gk,    name: "Гражданский кодекс РФ (часть третья)",      path: /kodeks/GK-RF-chast-3/, layout: full, group: in_domain}
+  - {code: gk,    name: "Гражданский кодекс РФ (часть четвертая)",   path: /kodeks/GK-RF-chast-4/, layout: toc,  group: in_domain}
+  - {code: zhk,   name: "Жилищный кодекс РФ",                        path: /kodeks/ZHK-RF/,        layout: full, group: in_domain}
+  - {code: koap,  name: "Кодекс РФ об административных правонарушениях", path: /kodeks/KOAP-RF/,  layout: full, group: in_domain}
+  - {code: sk,    name: "Семейный кодекс РФ",                        path: /kodeks/SK-RF/,         layout: toc,  group: ood}
+  - {code: zozpp, name: "Закон РФ «О защите прав потребителей»",     path: /doc/ZZPP/,             layout: full, group: ood}
+# Short human-readable code names used in document headers
+display:
+  tk: "Трудовой кодекс РФ"
+  gk: "Гражданский кодекс РФ"
+  zhk: "Жилищный кодекс РФ"
+  koap: "КоАП РФ"
+  sk: "Семейный кодекс РФ"
+  zozpp: "Закон о защите прав потребителей"
