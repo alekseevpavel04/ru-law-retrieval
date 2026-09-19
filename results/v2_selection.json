@@ -1,0 +1,91 @@
+{
+ "metric": "dev nDCG@10, mean over chunk views [chunk, chunk_tkfmt]",
+ "stages": {
+  "A": {
+   "runs": [
+    {
+     "name": "v2a_small_teacher_v1data",
+     "dev": 0.8430567971897488,
+     "best": {
+      "step": 108,
+      "epoch": 1.5,
+      "ndcg@10": 0.8430567971897488,
+      "recall@5": 0.9003378378378378,
+      "recall@10": 0.9408783783783784,
+      "mrr@10": 0.8115414521664521,
+      "ndcg@10_seen": 0.8478303336106241,
+      "ndcg@10_unseen_articles": 0.8287361879271227,
+      "ndcg@10_view_chunk": 0.8435091655058974,
+      "ndcg@10_view_chunk_tkfmt": 0.8426044288736002,
+      "is_best": true,
+      "eval_seconds": 22.1
+     },
+     "model_dir": "models\\v2a_small_teacher_v1data\\best"
+    },
+    {
+     "name": "v2a_small_teacher_v12",
+     "dev": 0.8466117793829939,
+     "best": {
+      "step": 264,
+      "epoch": 2.0,
+      "ndcg@10": 0.8466117793829939,
+      "recall@5": 0.902027027027027,
+      "recall@10": 0.9425675675675675,
+      "mrr@10": 0.8158093361218361,
+      "ndcg@10_seen": 0.8559492333396335,
+      "ndcg@10_unseen_articles": 0.8185994175130753,
+      "ndcg@10_view_chunk": 0.8503240060809869,
+      "ndcg@10_view_chunk_tkfmt": 0.8428995526850008,
+      "is_best": true,
+      "eval_seconds": 23.1
+     },
+     "model_dir": "models\\v2a_small_teacher_v12\\best"
+    },
+    {
+     "name": "v2a_small_teacher_v12_f50",
+     "dev": 0.8483099382891899,
+     "best": {
+      "step": 217,
+      "epoch": 1.736,
+      "ndcg@10": 0.8483099382891899,
+      "recall@5": 0.8986486486486487,
+      "recall@10": 0.9358108108108109,
+      "mrr@10": 0.81999141999142,
+      "ndcg@10_seen": 0.8546822632231388,
+      "ndcg@10_unseen_articles": 0.8291929634873425,
+      "ndcg@10_view_chunk": 0.8523286134537106,
+      "ndcg@10_view_chunk_tkfmt": 0.8442912631246691,
+      "is_best": true,
+      "eval_seconds": 21.6
+     },
+     "model_dir": "models\\v2a_small_teacher_v12_f50\\best"
+    }
+   ],
+   "chosen": "v2a_small_teacher_v12_f50"
+  },
+  "B": {
+   "runs": [
+    {
+     "name": "v2b_small_teacher_v12_f50_aug50",
+     "dev": 0.8462670512178329,
+     "best": {
+      "step": 155,
+      "epoch": 1.24,
+      "ndcg@10": 0.8462670512178329,
+      "recall@5": 0.9054054054054055,
+      "recall@10": 0.9358108108108109,
+      "mrr@10": 0.8172029172029172,
+      "ndcg@10_seen": 0.852742232752888,
+      "ndcg@10_unseen_articles": 0.8268415066126678,
+      "ndcg@10_view_chunk": 0.8508611912452742,
+      "ndcg@10_view_chunk_tkfmt": 0.8416729111903916,
+      "is_best": true,
+      "eval_seconds": 22.1
+     },
+     "model_dir": "models\\v2b_small_teacher_v12_f50_aug50\\best"
+    }
+   ],
+   "kept": false
+  }
+ }
+}

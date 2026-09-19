@@ -1,0 +1,26 @@
+# v2 grid (scripts/run_v2_grid.py)
+experiment: V2
+base_model: models\v2a_small_teacher_v12_f50\best
+train_file: train_llm_v12_teacher
+negatives: teacher
+loss: distill_kl
+batch_size: 32
+mini_batch_size: 32
+lr: 1.0e-05
+warmup_ratio: 0.1
+epochs: 1
+eval_every: 0.25
+max_seq_length: 208
+seed: 42
+freeze_embeddings: true
+scale: 20.0
+weight_decay: 0.01
+logging_steps: 2
+dev_views:
+- chunk
+- chunk_tkfmt
+name: v2c_distill_t05
+teacher_filter_rank: 50
+teacher_temperature: 0.05
+grad_checkpointing: true
+stage1: v2a_small_teacher_v12_f50
