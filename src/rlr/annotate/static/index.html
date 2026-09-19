@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golden: разметка</title>
+<style>
+  :root {
+    --surface: #fcfcfb; --surface-2: #f3f2ee; --line: #e6e5e0;
+    --text: #0b0b0b; --text-2: #52514e; --muted: #8a8984;
+    --accent: #2a78d6; --ok: #008300; --bad: #e34948; --warn: #c98500;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --surface: #1a1a19; --surface-2: #242423; --line: #383835;
+      --text: #ffffff; --text-2: #c3c2b7; --muted: #8f8e86; --accent: #3987e5; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--surface); color: var(--text);
+    font: 15px/1.5 "Segoe UI", system-ui, sans-serif; }
+  header { position: sticky; top: 0; background: var(--surface); border-bottom: 1px solid var(--line);
+    padding: 10px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; z-index: 2; }
+  header .progress { color: var(--text-2); }
+  main { max-width: 980px; margin: 0 auto; padding: 16px; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .question { font-size: 20px; font-weight: 600; margin: 6px 0 16px; }
+  .card { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 10px 0; background: var(--surface-2); }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .text { white-space: pre-wrap; color: var(--text-2); max-height: 420px; overflow: auto; }
+  details summary { cursor: pointer; font-weight: 600; }
+  details .text { margin-top: 8px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+  button { font: inherit; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--text); cursor: pointer; }
+  button.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  textarea { width: 100%; font: inherit; padding: 8px; border-radius: 6px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--text); }
+  label.cand { display: flex; gap: 8px; align-items: flex-start; }
+  .done { color: var(--ok); }
+  select { font: inherit; padding: 4px; background: var(--surface); color: var(--text); }
+</style>
+</head>
+<body>
+<header>
+  <strong>Golden</strong>
+  <select id="jump"></select>
+  <span class="progress" id="progress"></span>
+  <button id="nextTodo">Следующий неразмеченный</button>
+</header>
+<main id="app">Загрузка…</main>
+<script>
+let items = [], cur = null, state = {};
+const $ = (s) => document.querySelector(s);
+const esc = (s) => s.replace(/[&<>]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;"}[c]));
+
+async function loadList() {
+  items = await (await fetch("/api/items")).json();
+  const done = items.filter((i) => i.done).length;
+  $("#progress").textContent = `размечено ${done} из ${items.length}`;
+  $("#jump").innerHTML = items.map((i, n) =>
+    `<option value="${i.qid}">${i.done ? "✓ " : ""}${n + 1}. ${i.slice} / ${i.qtype}</option>`).join("");
+  if (cur) $("#jump").value = cur.qid;
+}
+
+async function show(qid) {
+  cur = await (await fetch(`/api/item/${encodeURIComponent(qid)}`)).json();
+  const a = cur.annotation;
+  state = a ? {status: a.question_status, fixed: a.fixed_text, gold: a.gold_relevant, extra: new Set(a.extra_relevant), comment: a.comment || ""}
+            : {status: "ok", fixed: cur.text, gold: true, extra: new Set(), comment: ""};
+  render();
+  $("#jump").value = qid;
+}
+
+function render() {
+  const c = cur;
+  $("#app").innerHTML = `
+    <div class="meta">${c.qid} · срез ${c.slice} · тип ${c.qtype} · ${c.code}${c.annotation ? ' · <span class="done">размечен</span>' : ""}</div>
+    <div class="question">${esc(c.text)}</div>
+    <div class="row">Вопрос:
+      <button data-s="ok">ок</button><button data-s="fix">исправить</button><button data-s="drop">выкинуть</button></div>
+    <div id="fixbox" style="display:${state.status === "fix" ? "block" : "none"}"><textarea id="fixed" rows="2">${esc(state.fixed || "")}</textarea></div>
+    <div class="card"><h3>Эталон: ${esc(c.gold.title)}</h3><div class="text">${esc(c.gold.text)}</div>
+      <div class="row">Эталон отвечает на вопрос: <button data-g="1">да</button><button data-g="0">нет</button></div></div>
+    <h3>Другие кандидаты: отметьте те, что тоже отвечают на вопрос</h3>
+    ${c.candidates.map((k) => `<div class="card"><label class="cand"><input type="checkbox" data-c="${k.doc_id}" ${state.extra.has(k.doc_id) ? "checked" : ""}>
+      <details><summary>${esc(k.title)} <span class="meta">(${k.source})</span></summary><div class="text">${esc(k.text)}</div></details></label></div>`).join("")}
+    <textarea id="comment" rows="1" placeholder="комментарий (необязательно)">${esc(state.comment)}</textarea>
+    <div class="row"><button class="primary" id="save">Сохранить и дальше (Enter)</button></div>`;
+  document.querySelectorAll("[data-s]").forEach((b) => { b.classList.toggle("sel", b.dataset.s === state.status);
+    b.onclick = () => { state.status = b.dataset.s; state.fixed = $("#fixed").value; state.comment = $("#comment").value; render(); }; });
+  document.querySelectorAll("[data-g]").forEach((b) => { b.classList.toggle("sel", (b.dataset.g === "1") === state.gold);
+    b.onclick = () => { state.gold = b.dataset.g === "1"; state.fixed = $("#fixed").value; state.comment = $("#comment").value; render(); }; });
+  document.querySelectorAll("[data-c]").forEach((cb) => cb.onchange = () => {
+    cb.checked ? state.extra.add(cb.dataset.c) : state.extra.delete(cb.dataset.c); });
+  $("#save").onclick = save;
+}
+
+async function save() {
+  const body = {qid: cur.qid, question_status: state.status, fixed_text: state.status === "fix" ? $("#fixed").value : "",
+    gold_relevant: state.gold, extra_relevant: [...state.extra], comment: $("#comment").value};
+  const r = await fetch("/api/annotate", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  if (!r.ok) { alert("Ошибка сохранения"); return; }
+  await loadList();
+  nextTodo();
+}
+
+function nextTodo() {
+  const idx = items.findIndex((i) => i.qid === (cur && cur.qid));
+  const rest = items.slice(idx + 1).concat(items.slice(0, idx + 1));
+  const t = rest.find((i) => !i.done);
+  if (t) show(t.qid); else $("#app").innerHTML = "<p>Всё размечено. Спасибо!</p>";
+}
+
+$("#jump").onchange = (e) => show(e.target.value);
+$("#nextTodo").onclick = nextTodo;
+document.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") save(); });
+loadList().then(() => { const t = items.find((i) => !i.done) || items[0]; if (t) show(t.qid); });
+</script>
+</body>
+</html>

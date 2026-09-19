@@ -15,6 +15,7 @@ _DEFAULTS = {
     "UV_CACHE_DIR": r"D:\VScode_projects\uv-cache",
     "PYTHONIOENCODING": "utf-8",
     "TOKENIZERS_PARALLELISM": "false",
+    "MTEB_CACHE": r"D:\VScode_projects\mteb-cache",
     # HF_HOME is on D, but `hf auth login` stored the token in the default location
     "HF_TOKEN_PATH": str(Path.home() / ".cache" / "huggingface" / "token"),
 }

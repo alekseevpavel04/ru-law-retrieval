@@ -27,6 +27,7 @@ COMMANDS: dict[str, tuple[str, str]] = {
     "speed": ("rlr.eval.speed", "speed / size benchmark"),
     "forgetting": ("rlr.eval.forgetting", "RuBQ forgetting check"),
     "annotate": ("rlr.annotate.app", "golden set annotation UI"),
+    "golden": ("rlr.annotate.golden", "golden subset: select items / build qrels"),
 }
 
 

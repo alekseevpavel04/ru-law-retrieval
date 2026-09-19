@@ -1,0 +1,75 @@
+# Baseline retrievers. Prompts are taken from each model card / config_sentence_transformers.json
+# (checked 2026-09-19). A wrong prefix silently hurts quality, so every model has a sanity test
+# (tests/test_prompts.py) and prompts live here, not in code.
+# max_seq_length is capped at 512 for every model (same truncation for all, see DECISIONS.md).
+max_seq_length: 512
+dtype: float16
+models:
+  - name: e5-small
+    path: intfloat/multilingual-e5-small
+    query_prompt: "query: "
+    doc_prompt: "passage: "
+    license: mit
+  - name: e5-base
+    path: intfloat/multilingual-e5-base
+    query_prompt: "query: "
+    doc_prompt: "passage: "
+    license: mit
+  - name: e5-large
+    path: intfloat/multilingual-e5-large
+    query_prompt: "query: "
+    doc_prompt: "passage: "
+    license: mit
+  - name: e5-large-instruct
+    path: intfloat/multilingual-e5-large-instruct
+    query_prompt: "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: "
+    doc_prompt: ""
+    license: mit
+  - name: bge-m3
+    path: BAAI/bge-m3
+    query_prompt: ""
+    doc_prompt: ""
+    license: mit
+  - name: USER-base
+    path: deepvk/USER-base
+    query_prompt: "query: "
+    doc_prompt: "passage: "
+    license: apache-2.0
+  - name: USER-bge-m3
+    path: deepvk/USER-bge-m3
+    query_prompt: ""
+    doc_prompt: ""
+    license: apache-2.0
+  - name: USER2-base
+    path: deepvk/USER2-base
+    query_prompt: "search_query: "
+    doc_prompt: "search_document: "
+    license: apache-2.0
+    note: "added: newer (2025) Russian ModernBERT-based embedder"
+  - name: FRIDA
+    path: ai-forever/FRIDA
+    query_prompt: "search_query: "
+    doc_prompt: "search_document: "
+    license: mit
+  - name: ru-en-RoSBERTa
+    path: ai-forever/ru-en-RoSBERTa
+    query_prompt: "search_query: "
+    doc_prompt: "search_document: "
+    license: mit
+  - name: Qwen3-Emb-0.6B
+    path: Qwen/Qwen3-Embedding-0.6B
+    query_prompt: "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery:"
+    doc_prompt: ""
+    license: apache-2.0
+    padding_side: left
+  - name: rubert-tiny2
+    path: cointegrated/rubert-tiny2
+    query_prompt: ""
+    doc_prompt: ""
+    license: mit
+# skipped: google/embeddinggemma-300m (gated, needs manual license acceptance on HF)
+bm25:
+  k1: 1.5
+  b: 0.75
+  stemmer: russian
+rrf_k: 60
