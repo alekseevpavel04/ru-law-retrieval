@@ -1,4 +1,4 @@
-from rlr.data.parse import ARTICLE_RE, Block, article_status, blocks_from_full_page, parse_blocks
+from rlr.data.parse import ARTICLE_RE, Block, article_from_page, article_status, blocks_from_full_page, parse_blocks
 
 
 def P(text: str) -> Block:
@@ -89,3 +89,42 @@ def test_blocks_from_full_page_html():
     arts = parse_blocks(blocks_from_full_page(html), "zozpp")
     assert len(arts) == 1
     assert arts[0].text == "Абзац с неразрывным пробелом и ссылкой ."
+
+
+def test_repeal_lines_inside_article_are_dropped():
+    blocks = [
+        P("Статья 11.17. Нарушение правил"),
+        P("1. Нарушение правил поведения."),
+        P("2. Утратил силу. - Федеральный закон от 26.06.2007 N 118-ФЗ."),
+        P("3 - 4. Утратили силу. - Федеральный закон от 31.07.2020 N 262-ФЗ."),
+        P("Статьи 11.18 - 11.19. Утратили силу. - Федеральный закон от 01.07.2021 N 283-ФЗ."),
+        P("5. Лицо, утратившее силу доверенности, не является..."),
+    ]
+    (art,) = parse_blocks(blocks, "koap")
+    assert art.text == "1. Нарушение правил поведения.\n5. Лицо, утратившее силу доверенности, не является..."
+
+
+def test_roman_chapter_numbers():
+    blocks = [Block("center", "Глава II. ЗАЩИТА ПРАВ ПОТРЕБИТЕЛЕЙ ПРИ ПРОДАЖЕ ТОВАРОВ"), P("Статья 18. Права"), P("x")]
+    (art,) = parse_blocks(blocks, "zozpp")
+    assert art.chapter == "II"
+
+
+def test_footnote_only_article_is_empty():
+    assert article_status("Товарный знак", '<*> Буква "Т" в окружности.\n<**> Буква "Т" в квадрате.') == "empty"
+
+
+def test_article_page_stops_at_signature():
+    html = """<html><body><h1>Статья 170. Последняя</h1>
+    <div class="main-center-block-article-text">
+      <p class="pBoth">Текст статьи.</p>
+      <p class="pRight">Президент</p><p class="pBoth">Москва, Кремль</p>
+    </div></body></html>"""
+    art = article_from_page(html, "sk", "/kodeks/SK-RF/razdel-viii/glava-22/statja-170/")
+    assert art is not None
+    assert (art.doc_id, art.chapter, art.text) == ("sk-170", "22", "Текст статьи.")
+
+
+def test_merged_repealed_header():
+    assert article_status(", статья 150. Утратили силу", "") == "repealed"
+    assert article_status("Признание утратившими силу отдельных актов", "Текст.") == "active"

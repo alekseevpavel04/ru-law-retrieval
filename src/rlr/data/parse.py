@@ -21,14 +21,22 @@ from pathlib import Path
 from bs4 import BeautifulSoup, Tag
 
 from rlr.config import codes_config
-from rlr.data.download import RAW, slug_of
+from rlr.data.download import RAW, article_file_name, slug_of
 from rlr.env import DATA
 
 CORPUS = DATA / "corpus"
 
 ARTICLE_RE = re.compile(r"^Статья\s+(\d+(?:[.\-]\d+)*)\s*\.?\s*(.*)$")
-CHAPTER_RE = re.compile(r"^Глава\s+(\d+(?:[.\-]\d+)*)\s*\.?\s*(.*)$", re.IGNORECASE)
+CHAPTER_RE = re.compile(r"^Глава\s+(\d+(?:[.\-]\d+)*|[IVXLC]+)\s*\.?\s*(.*)$", re.IGNORECASE)
 REPEALED_RE = re.compile(r"^\(?\s*(Утратил[аи]? силу|Исключен[аы]?)", re.IGNORECASE)
+# merged headers of repealed articles: "Статья 149, статья 150. Утратили силу"
+REPEALED_TITLE_RE = re.compile(r"(^|[,.]\s*)(Утратил[аи]?\s+силу|Исключен[аы]?)")
+# a whole paragraph that only says that a part of the article was repealed:
+# "2. Утратил силу. - Федеральный закон ...", "Статьи 11.18 - 11.19. Утратили силу. - ..."
+REPEAL_LINE_RE = re.compile(
+    r"^[\d.\s\-–)]*(Стать[яи]\s+[\d.\s\-–]+\.\s*)?(Утратил\w*\s+силу|Исключен\w*)", re.IGNORECASE
+)
+FOOTNOTE_RE = re.compile(r"^<\*+>")
 EDITION_RE = re.compile(r"\((ред\.[^)]*)\)")
 SPACE_RE = re.compile(r"\s+")
 
@@ -62,11 +70,17 @@ def clean(text: str) -> str:
 
 
 def article_status(title: str, body: str) -> str:
-    if REPEALED_RE.match(title) or (REPEALED_RE.match(body) and len(body) < 400):
+    if REPEALED_RE.match(title) or REPEALED_TITLE_RE.search(title) or (REPEALED_RE.match(body) and len(body) < 400):
         return "repealed"
-    if not body.strip():
+    lines = [ln for ln in body.split("\n") if ln.strip()]
+    # legalacts renders some articles (e.g. images of symbols) only as footnotes
+    if not lines or all(FOOTNOTE_RE.match(ln) for ln in lines):
         return "empty"
     return "active"
+
+
+def is_repeal_line(text: str) -> bool:
+    return bool(REPEAL_LINE_RE.match(text)) and len(text) < 300
 
 
 def parse_blocks(blocks: list[Block], code: str) -> list[Article]:
@@ -108,7 +122,7 @@ def parse_blocks(blocks: list[Block], code: str) -> list[Article]:
         if block.kind == "center":
             # section / subsection / paragraph (§) headings are not article text
             continue
-        if current is not None:
+        if current is not None and not is_repeal_line(text):
             body.append(text)
     flush()
     return articles
@@ -162,8 +176,10 @@ def article_from_page(html: str, code: str, href: str) -> Article | None:
     paragraphs: list[str] = []
     if body_el is not None:
         for p in body_el.find_all("p"):
+            if "pRight" in (p.get("class") or []):  # signature of the code after its last article
+                break
             text = clean(p.get_text(" "))
-            if text:
+            if text and not is_repeal_line(text):
                 paragraphs.append(text)
     text = "\n".join(paragraphs)
     art = Article(f"{code}-{number}", code, number, title, chapter, chapter_title, text)
@@ -185,8 +201,6 @@ def parse_code(entry: dict, base: str) -> tuple[list[Article], dict]:
         links = json.loads((code_dir / "links.json").read_text(encoding="utf-8"))
         articles = []
         for href in links:
-            from rlr.data.download import article_file_name
-
             html = (code_dir / "articles" / article_file_name(href)).read_text(encoding="utf-8")
             art = article_from_page(html, entry["code"], href)
             if art is not None:
