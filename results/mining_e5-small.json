@@ -1,0 +1,21 @@
+{
+ "base": "intfloat/multilingual-e5-small",
+ "top_k": 50,
+ "margin": 0.95,
+ "llm": {
+  "queries": 9139,
+  "candidates_same_article": 29316,
+  "candidates_too_close": 344094,
+  "negative_by_margin_rule": 2742,
+  "negative_by_fallback": 6395,
+  "queries_without_negative": 2
+ },
+ "titles": {
+  "queries": 3159,
+  "candidates_same_article": 7740,
+  "candidates_too_close": 109252,
+  "negative_by_margin_rule": 1327,
+  "negative_by_fallback": 1832,
+  "queries_without_negative": 0
+ }
+}

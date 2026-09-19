@@ -20,8 +20,19 @@ def test_mine_skips_gold_article_and_too_close_candidates():
     assert stats["candidates_too_close"] == 1
 
 
-def test_mine_returns_minus_one_when_nothing_left():
+def test_mine_returns_minus_one_when_only_gold_chunks():
     chunk_emb = _unit([[1, 0], [0.99, 0.01]])
     neg, stats = mine(_unit([[1, 0]]), np.array([1.0]), np.array([0]), chunk_emb, np.array([0, 0]), top_k=2)
     assert neg.tolist() == [-1]
     assert stats["queries_without_negative"] == 1
+
+
+def test_mine_fallback_takes_lowest_non_gold_in_topk():
+    # every non-gold candidate is above 0.95 x positive -> take the lowest-scoring one
+    chunk_emb = _unit([[1, 0.3], [1, 0.02], [1, 0.05], [1, 0.1]])
+    chunk_article = np.array([0, 1, 2, 3])
+    q = _unit([[1, 0]])
+    pos_score = np.array([float(chunk_emb[0] @ q[0])])
+    neg, stats = mine(q, pos_score, np.array([0]), chunk_emb, chunk_article, top_k=4, margin=0.95)
+    assert neg.tolist() == [3]
+    assert stats["negative_by_fallback"] == 1

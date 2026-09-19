@@ -22,7 +22,7 @@ from rlr.config import codes_config
 from rlr.data.parse import CORPUS, read_jsonl, write_jsonl
 from rlr.data.splits import SPLITS
 from rlr.env import DATA, RESULTS
-from rlr.gen.filters import exact_duplicates, run_filters
+from rlr.gen.filters import exact_duplicates, normalize, run_filters
 from rlr.gen.generate import article_parts
 from rlr.gen.prompts import QUESTION_TYPES
 
@@ -192,6 +192,15 @@ def main(argv: list[str] | None = None) -> None:
                 "code_display": display[a["code"]],
             }
         )
+
+    # the same rule for title pairs: a title that (nearly) equals a dev/test query is removed from train
+    title_emb = enc.encode_queries([t["text"] for t in titles])
+    eval_norm = {normalize(q["text"]) for q in eval_q}
+    title_dup = near_dup_against(title_emb, eval_emb, NEAR_DUP) | np.array(
+        [normalize(t["text"]) in eval_norm for t in titles], dtype=bool
+    )
+    counts["titles_drop_near_dup_of_eval"] += int(title_dup.sum())
+    titles = [t for t, d in zip(titles, title_dup, strict=True) if not d]
 
     DATASET.mkdir(parents=True, exist_ok=True)
     write_jsonl(DATASET / "train_llm.jsonl", train_q)

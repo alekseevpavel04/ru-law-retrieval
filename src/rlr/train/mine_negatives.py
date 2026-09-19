@@ -6,7 +6,10 @@ article are not negatives. Algorithm (per training query, with the base model):
 1. score all chunks, take top-50;
 2. drop every chunk of the gold article;
 3. keep candidates with score < ``margin`` x score(query, positive) (likely false negatives removed);
-4. the negative is the best remaining candidate.
+4. the negative is the best remaining candidate;
+5. fallback (see DECISIONS.md): e5 cosine scores are compressed (0.75-0.9), so for ~70% of queries
+   every non-gold top-50 candidate is above 0.95 x positive. Then the negative is the *lowest*-scoring
+   non-gold candidate in the top-50: still hard (rank ~50 of 13.8k chunks), least likely to be a false negative.
 
 For title pairs the positive is a chunk body without the header line, so the
 negative is also taken without its header (same text format on both sides).
@@ -15,13 +18,14 @@ Usage: python -m rlr mine --base intfloat/multilingual-e5-small --name e5-small
 """
 
 import argparse
+import json
 from collections import Counter
 
 import numpy as np
 import torch
 
 from rlr.data.parse import read_jsonl, write_jsonl
-from rlr.env import DATA
+from rlr.env import DATA, RESULTS
 from rlr.eval.retrieve import DenseEncoder, load_corpus
 
 DATASET = DATA / "dataset"
@@ -54,9 +58,19 @@ def mine(
         ok = ~same_article & ~too_close
         stats["candidates_same_article"] += int(same_article.sum())
         stats["candidates_too_close"] += int((too_close & ~same_article).sum())
-        first_ok = torch.where(ok.any(dim=1), ok.float().argmax(dim=1), torch.full_like(ok[:, 0], -1, dtype=torch.long))
-        for r, j in enumerate(first_ok.cpu().numpy()):
-            out[i + r] = int(idx[r, j]) if j >= 0 else -1
+        has_ok = ok.any(dim=1)
+        first_ok = ok.float().argmax(dim=1)
+        # fallback: last (lowest-scoring) non-gold candidate in the top-k
+        not_gold = ~same_article
+        last_not_gold = top_k - 1 - not_gold.flip(1).float().argmax(dim=1)
+        has_not_gold = not_gold.any(dim=1)
+        stats["negative_by_margin_rule"] += int(has_ok.sum())
+        stats["negative_by_fallback"] += int((~has_ok & has_not_gold).sum())
+        for r in range(len(has_ok)):
+            if has_ok[r]:
+                out[i + r] = int(idx[r, first_ok[r]])
+            elif has_not_gold[r]:
+                out[i + r] = int(idx[r, last_not_gold[r]])
     stats["queries_without_negative"] = int((out < 0).sum())
     return out, stats
 
@@ -74,6 +88,7 @@ def main(argv: list[str] | None = None) -> None:
     chunk_emb = enc.encode_corpus(corpus, cache_key=args.name)
     art_index = {d: i for i, d in enumerate(corpus.article_ids)}
 
+    report = {"base": args.base, "top_k": TOP_K, "margin": MARGIN}
     for source in ("llm", "titles"):
         rows = read_jsonl(DATASET / f"train_{source}.jsonl")
         q_emb = enc.encode_queries([r["text"] for r in rows])
@@ -96,6 +111,8 @@ def main(argv: list[str] | None = None) -> None:
             r["neg_text"] = c["body"] if source == "titles" else c["text"]
         write_jsonl(DATASET / f"train_{source}_hn_{args.name}.jsonl", rows)
         print(source, len(rows), dict(stats))
+        report[source] = {"queries": len(rows), **dict(stats)}
+    (RESULTS / f"mining_{args.name}.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
 
 
 if __name__ == "__main__":

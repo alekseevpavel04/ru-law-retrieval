@@ -105,13 +105,59 @@ def breakdown(models: list[str], key: str, qset: str = "test", protocol: str = "
     return pd.DataFrame(rows).T
 
 
+def train_runs(prefix: str = "") -> pd.DataFrame:
+    """One row per training run: dev (base / best), time, memory. Plus overlay figure per experiment."""
+    from rlr.plots import plot_runs_overlay
+
+    summaries = []
+    for p in sorted((RESULTS / "train").glob("*.json")):
+        s = json.loads(p.read_text(encoding="utf-8"))
+        if s["name"].startswith(prefix):
+            summaries.append(s)
+    rows = []
+    for s in summaries:
+        best, base = s["dev_best"], s["dev_base"]
+        rows.append(
+            {
+                "run": s["name"],
+                "experiment": s["config"].get("experiment", ""),
+                "base_model": s["base_model"].split("/")[-1],
+                "data": "+".join(k for k in ("llm", "titles") if s["config"]["data"].get(k)),
+                "fraction": s["config"]["data"].get("fraction", 1.0),
+                "hard_negatives": s["config"].get("hard_negatives", False),
+                "seed": s["seed"],
+                "train_rows": s["train_rows"],
+                "steps": s["total_steps"],
+                "best_step": best["step"],
+                "best_epoch": round(best["step"] / s["steps_per_epoch"], 2),
+                "dev_ndcg@10_base": base["ndcg@10"],
+                "dev_ndcg@10_best": best["ndcg@10"],
+                "dev_ndcg@10_best_seen": best.get("ndcg@10_seen"),
+                "dev_ndcg@10_best_unseen_articles": best.get("ndcg@10_unseen_articles"),
+                "dev_recall@10_best": best["recall@10"],
+                "train_min": round(s["train_seconds"] / 60, 2),
+                "sec_per_step": s["seconds_per_step"],
+                "peak_mem_gb": s["peak_mem_gb"],
+                "git_commit": s["git_commit"],
+            }
+        )
+    df = pd.DataFrame(rows)
+    df.to_csv(RESULTS / "train_runs.csv", index=False, float_format="%.4f")
+    for exp in sorted({s["config"].get("experiment", "") for s in summaries}):
+        group = [s for s in summaries if s["config"].get("experiment", "") == exp]
+        if group:
+            plot_runs_overlay(group, FIG / "train" / f"overlay_{exp}.png", f"{exp}: dev nDCG@10 and train loss")
+    return df
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="rlr analysis")
-    parser.add_argument("what", choices=["lexical"])
+    parser.add_argument("what", choices=["lexical", "train"])
     args = parser.parse_args(argv)
     if args.what == "lexical":
-        agg = lexical_overlap()
-        print(agg.to_string(index=False))
+        print(lexical_overlap().to_string(index=False))
+    elif args.what == "train":
+        print(train_runs().to_string(index=False))
 
 
 if __name__ == "__main__":

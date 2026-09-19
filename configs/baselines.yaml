@@ -35,6 +35,7 @@ models:
     query_prompt: "query: "
     doc_prompt: "passage: "
     license: apache-2.0
+    dtype: float32  # DeBERTa attention fails in fp16 (mixed dtypes) with transformers 5
   - name: USER-bge-m3
     path: deepvk/USER-bge-m3
     query_prompt: ""

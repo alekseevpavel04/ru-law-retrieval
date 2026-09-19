@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 export PYTHONIOENCODING=utf-8
 PY=.venv/Scripts/python.exe
-until grep -q "generation pipeline done" logs/gen_pipeline.log 2>/dev/null; do sleep 30; done
+
 taskkill //F //IM llama-server.exe >/dev/null 2>&1 || true
 $PY -m rlr build-dataset
 $PY -m pytest -q

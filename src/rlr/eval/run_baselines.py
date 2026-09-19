@@ -204,7 +204,7 @@ def main(argv: list[str] | None = None) -> None:
             m["query_prompt"],
             m["doc_prompt"],
             max_seq_length=cfg["max_seq_length"],
-            dtype=cfg["dtype"],
+            dtype=m.get("dtype", cfg["dtype"]),
             padding_side=m.get("padding_side"),
             name=m["name"],
         )
@@ -216,7 +216,7 @@ def main(argv: list[str] | None = None) -> None:
             "query_prompt": m["query_prompt"],
             "doc_prompt": m["doc_prompt"],
             "max_seq_length": enc.model.max_seq_length,
-            "dtype": cfg["dtype"],
+            "dtype": m.get("dtype", cfg["dtype"]),
             "params": n_params,
             "dim": enc.model.get_sentence_embedding_dimension(),
             "peak_mem_gb": round(torch.cuda.max_memory_allocated() / 2**30, 2) if torch.cuda.is_available() else None,

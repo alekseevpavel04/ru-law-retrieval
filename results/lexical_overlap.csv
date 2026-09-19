@@ -1,0 +1,11 @@
+split,generator,qtype,n,overlap_mean,overlap_median,words_mean
+dev,YandexGPT-5-Lite-8B-instruct-Q4_K_M,everyday,97,0.2873,0.2692,24.2577
+dev,YandexGPT-5-Lite-8B-instruct-Q4_K_M,legal,100,0.7667,0.7857,14.7000
+dev,YandexGPT-5-Lite-8B-instruct-Q4_K_M,search,99,0.8666,1.0000,4.6364
+test,YandexGPT-5-Lite-8B-instruct-Q4_K_M,everyday,242,0.2792,0.2727,24.1405
+test,YandexGPT-5-Lite-8B-instruct-Q4_K_M,legal,243,0.7488,0.7647,14.8272
+test,YandexGPT-5-Lite-8B-instruct-Q4_K_M,search,243,0.9055,1.0000,4.6955
+train_llm,Qwen3-8B-Q4_K_M,everyday,3267,0.3528,0.3333,9.9425
+train_llm,Qwen3-8B-Q4_K_M,legal,3020,0.6783,0.7000,8.5119
+train_llm,Qwen3-8B-Q4_K_M,search,2852,0.5921,0.6000,5.8327
+train_titles,none,title,3159,1.0000,1.0000,8.0696

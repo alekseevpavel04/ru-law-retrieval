@@ -1,51 +1,54 @@
 {
  "filters": {
-  "eval_drop_copy_ngram": 70,
   "eval_drop_exact_dup": 0,
   "eval_drop_judge_no": 12,
   "eval_drop_length": 3,
   "eval_generated": 1039,
-  "train_drop_article_ref": 1,
-  "train_drop_copy_ngram": 34,
-  "train_drop_exact_dup": 26,
-  "train_drop_length": 7,
-  "train_drop_near_dup": 384,
-  "train_drop_near_dup_of_eval": 24,
-  "train_generated": 3573
+  "titles_drop_near_dup_of_eval": 48,
+  "train_drop_article_ref": 17,
+  "train_drop_copy_ngram": 115,
+  "train_drop_exact_dup": 114,
+  "train_drop_length": 28,
+  "train_drop_near_dup": 1401,
+  "train_drop_near_dup_of_eval": 94,
+  "train_generated": 10908
  },
  "near_dup_threshold": 0.95,
- "train_llm": 3097,
- "train_titles": 3207,
+ "train_llm": 9139,
+ "train_titles": 3159,
  "train_by_type": {
-  "everyday": 1081,
-  "search": 1002,
-  "legal": 1014
+  "everyday": 3267,
+  "search": 2852,
+  "legal": 3020
  },
  "train_by_code": {
-  "gk": 3097
+  "gk": 4144,
+  "koap": 2930,
+  "tk": 1334,
+  "zhk": 731
  },
- "train_articles_covered": 1140,
+ "train_articles_covered": 3179,
  "eval": {
-  "dev/seen": 202,
-  "dev/unseen_articles": 69,
-  "test/seen": 267,
-  "test/unseen_articles": 208,
-  "test/unseen_codes": 208
+  "dev/seen": 222,
+  "dev/unseen_articles": 74,
+  "test/seen": 293,
+  "test/unseen_articles": 218,
+  "test/unseen_codes": 217
  },
  "eval_by_type": {
-  "dev/everyday": 96,
-  "dev/legal": 77,
-  "dev/search": 98,
-  "test/everyday": 241,
-  "test/legal": 202,
-  "test/search": 240
+  "dev/everyday": 97,
+  "dev/legal": 100,
+  "dev/search": 99,
+  "test/everyday": 242,
+  "test/legal": 243,
+  "test/search": 243
  },
  "test_by_code": {
-  "gk": 234,
-  "koap": 141,
-  "tk": 67,
-  "zhk": 33,
-  "sk": 160,
-  "zozpp": 48
+  "gk": 248,
+  "koap": 154,
+  "tk": 74,
+  "zhk": 35,
+  "sk": 168,
+  "zozpp": 49
  }
 }

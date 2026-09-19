@@ -103,9 +103,14 @@ class DenseEncoder:
         self.doc_prompt = doc_prompt
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         torch_dtype = getattr(torch, dtype) if self.device == "cuda" else torch.float32
-        self.model = SentenceTransformer(
-            path, device=self.device, model_kwargs={"torch_dtype": torch_dtype}, trust_remote_code=False
-        )
+        try:
+            self.model = SentenceTransformer(
+                path, device=self.device, model_kwargs={"torch_dtype": torch_dtype}, trust_remote_code=False
+            )
+        except TypeError:
+            # sentence-transformers 6 cannot load old configs where Normalize has path "" (e.g. deepvk/USER-base):
+            # it reads the model config.json as the Normalize config. Build the same pipeline by hand.
+            self.model = build_from_modules(path, self.device, torch_dtype)
         self.model.max_seq_length = min(max_seq_length, self.model.max_seq_length or max_seq_length)
         if padding_side:
             self.model.tokenizer.padding_side = padding_side
@@ -142,6 +147,28 @@ class DenseEncoder:
         path.parent.mkdir(parents=True, exist_ok=True)
         np.save(path, emb)
         return emb
+
+
+def build_from_modules(path: str, device: str, torch_dtype):
+    """Transformer + Pooling (from ``1_Pooling/config.json``) + Normalize, as in the model's modules.json."""
+    import json
+
+    from huggingface_hub import hf_hub_download
+    from sentence_transformers import SentenceTransformer
+    from sentence_transformers.sentence_transformer.modules import Normalize, Pooling, Transformer
+
+    pooling_cfg = json.loads(Path(hf_hub_download(path, "1_Pooling/config.json")).read_text(encoding="utf-8"))
+    transformer = Transformer(path, model_kwargs={"torch_dtype": torch_dtype})
+    pooling = Pooling(transformer.get_embedding_dimension(), pooling_mode=_pooling_mode(pooling_cfg))
+    return SentenceTransformer(modules=[transformer, pooling, Normalize()], device=device)
+
+
+def _pooling_mode(cfg: dict) -> str:
+    for key, mode in (("pooling_mode_cls_token", "cls"), ("pooling_mode_mean_tokens", "mean"),
+                      ("pooling_mode_max_tokens", "max"), ("pooling_mode_lasttoken", "lasttoken")):  # fmt: skip
+        if cfg.get(key):
+            return mode
+    return cfg.get("pooling_mode", "mean")
 
 
 def dense_search(
