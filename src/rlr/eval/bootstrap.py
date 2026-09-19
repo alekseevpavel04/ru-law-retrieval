@@ -71,9 +71,11 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--out", default="bootstrap.csv")
     args = parser.parse_args(argv)
 
-    pairs = load_yaml(args.pairs_file)["pairs"] if args.pairs_file else [
-        {"a": args.a, "b": args.b, "set": args.set, "protocol": args.protocol}
-    ]  # fmt: skip
+    pairs = (
+        load_yaml(args.pairs_file)["pairs"]
+        if args.pairs_file
+        else [{"a": args.a, "b": args.b, "set": args.set, "protocol": args.protocol}]
+    )
     rows = []
     for p in pairs:
         by = p.get("by", args.by)

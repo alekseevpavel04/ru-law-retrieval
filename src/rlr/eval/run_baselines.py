@@ -191,8 +191,9 @@ def main(argv: list[str] | None = None) -> None:
 
     models = []
     if args.path:
-        models = [{"name": args.name, "path": args.path, "query_prompt": args.query_prompt,
-                   "doc_prompt": args.doc_prompt}]  # fmt: skip
+        models = [
+            {"name": args.name, "path": args.path, "query_prompt": args.query_prompt, "doc_prompt": args.doc_prompt}
+        ]
     elif not args.no_dense:
         models = [m for m in cfg["models"] if not args.models or m["name"] in args.models]
 

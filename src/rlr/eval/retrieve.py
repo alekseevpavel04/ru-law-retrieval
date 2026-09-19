@@ -165,8 +165,12 @@ def build_from_modules(path: str, device: str, torch_dtype):
 
 
 def _pooling_mode(cfg: dict) -> str:
-    for key, mode in (("pooling_mode_cls_token", "cls"), ("pooling_mode_mean_tokens", "mean"),
-                      ("pooling_mode_max_tokens", "max"), ("pooling_mode_lasttoken", "lasttoken")):  # fmt: skip
+    for key, mode in (
+        ("pooling_mode_cls_token", "cls"),
+        ("pooling_mode_mean_tokens", "mean"),
+        ("pooling_mode_max_tokens", "max"),
+        ("pooling_mode_lasttoken", "lasttoken"),
+    ):
         if cfg.get(key):
             return mode
     return cfg.get("pooling_mode", "mean")

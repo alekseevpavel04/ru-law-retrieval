@@ -1,0 +1,149 @@
+## Corpus
+
+| Кодекс | Статей | Действующих | Исключено (утр. силу / пустые) | Медиана, симв. | p95, симв. | Медиана, ток. | p95, ток. | > 512 ток. | Фрагментов |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| tk | 540 | 534 | 6 / 0 | 1092 | 4785 | 220 | 918 | 97 | 1894 |
+| gk | 1731 | 1717 | 12 / 2 | 862 | 3184 | 186 | 653 | 144 | 4537 |
+| zhk | 243 | 241 | 2 / 0 | 1696 | 10537 | 335 | 2027 | 78 | 1564 |
+| koap | 1124 | 1071 | 53 / 0 | 1345 | 6421 | 277 | 1252 | 273 | 5127 |
+| sk | 175 | 171 | 4 / 0 | 833 | 2758 | 180 | 604 | 11 | 401 |
+| zozpp | 55 | 52 | 3 / 0 | 1704 | 5953 | 342 | 1192 | 19 | 286 |
+
+## Main (test, chunk)
+
+| Модель | Параметры, M | nDCG@10 [95% ДИ] | Recall@10 | seen | unseen_articles | unseen_codes |
+|---|---:|---:|---:|---:|---:|---:|
+| FRIDA | 823 | 0.878 [0.859; 0.896] | 0.964 | 0.874 | 0.873 | 0.890 |
+| e5-large-instruct | 560 | 0.865 [0.846; 0.883] | 0.968 | 0.866 | 0.860 | 0.868 |
+| e5-large | 560 | 0.859 [0.839; 0.877] | 0.959 | 0.867 | 0.845 | 0.861 |
+| bge-m3 | 568 | 0.856 [0.836; 0.875] | 0.957 | 0.853 | 0.845 | 0.872 |
+| **ft-e5-base** | 278 | 0.847 [0.826; 0.866] | 0.953 | 0.844 | 0.858 | 0.839 |
+| USER-bge-m3 | 359 | 0.846 [0.825; 0.866] | 0.952 | 0.851 | 0.831 | 0.853 |
+| **ft-e5-small** | 118 | 0.845 [0.824; 0.864] | 0.948 | 0.835 | 0.845 | 0.858 |
+| Qwen3-Emb-0.6B | 596 | 0.843 [0.823; 0.863] | 0.953 | 0.834 | 0.840 | 0.859 |
+| ru-en-RoSBERTa | 405 | 0.840 [0.819; 0.859] | 0.956 | 0.844 | 0.837 | 0.837 |
+| USER2-base | 149 | 0.825 [0.804; 0.846] | 0.945 | 0.825 | 0.815 | 0.837 |
+| e5-base | 278 | 0.822 [0.800; 0.843] | 0.934 | 0.810 | 0.799 | 0.860 |
+| e5-small | 118 | 0.802 [0.778; 0.826] | 0.905 | 0.785 | 0.789 | 0.837 |
+| RRF(BM25+FRIDA) | 0 | 0.792 [0.767; 0.815] | 0.911 | 0.807 | 0.758 | 0.804 |
+| RRF(BM25+ft-e5-small) | 0 | 0.772 [0.747; 0.796] | 0.894 | 0.785 | 0.751 | 0.776 |
+| USER-base | 124 | 0.684 [0.656; 0.710] | 0.845 | 0.674 | 0.671 | 0.710 |
+| BM25 | 0 | 0.670 [0.640; 0.700] | 0.776 | 0.679 | 0.640 | 0.689 |
+| rubert-tiny2 | 29 | 0.405 [0.376; 0.434] | 0.588 | 0.395 | 0.343 | 0.481 |
+
+## Protocols
+
+| Модель | article | chunk |
+|---|---:|---:|
+| FRIDA | 0.861 | 0.878 |
+| e5-large-instruct | 0.837 | 0.865 |
+| e5-large | 0.828 | 0.859 |
+| bge-m3 | 0.847 | 0.856 |
+| ft-e5-base | 0.805 | 0.847 |
+| USER-bge-m3 | 0.837 | 0.846 |
+| ft-e5-small | 0.805 | 0.845 |
+| Qwen3-Emb-0.6B | 0.829 | 0.843 |
+| ru-en-RoSBERTa | 0.813 | 0.840 |
+| USER2-base | 0.816 | 0.825 |
+| e5-base | 0.776 | 0.822 |
+| e5-small | 0.757 | 0.802 |
+| RRF(BM25+FRIDA) | 0.787 | 0.792 |
+| RRF(BM25+ft-e5-small) | 0.770 | 0.772 |
+| USER-base | 0.688 | 0.684 |
+| BM25 | 0.673 | 0.670 |
+| rubert-tiny2 | 0.384 | 0.405 |
+
+## Golden
+
+| Модель | nDCG@10 [95% ДИ] | Recall@10 |
+|---|---:|---:|
+| FRIDA | 0.916 [0.886; 0.945] | 0.975 |
+| e5-large | 0.907 [0.873; 0.939] | 0.966 |
+| e5-large-instruct | 0.904 [0.869; 0.936] | 0.967 |
+| bge-m3 | 0.899 [0.866; 0.929] | 0.971 |
+| USER-bge-m3 | 0.895 [0.860; 0.928] | 0.964 |
+| ru-en-RoSBERTa | 0.882 [0.849; 0.914] | 0.984 |
+| ft-e5-base | 0.879 [0.844; 0.913] | 0.974 |
+| e5-base | 0.872 [0.833; 0.908] | 0.951 |
+| ft-e5-small | 0.869 [0.831; 0.904] | 0.957 |
+| USER2-base | 0.869 [0.829; 0.905] | 0.946 |
+| Qwen3-Emb-0.6B | 0.869 [0.831; 0.904] | 0.952 |
+| e5-small | 0.831 [0.785; 0.874] | 0.916 |
+| RRF(BM25+FRIDA) | 0.820 [0.773; 0.865] | 0.909 |
+| RRF(BM25+ft-e5-small) | 0.796 [0.745; 0.844] | 0.889 |
+| USER-base | 0.725 [0.673; 0.773] | 0.878 |
+| BM25 | 0.712 [0.652; 0.768] | 0.785 |
+| rubert-tiny2 | 0.406 [0.351; 0.462] | 0.603 |
+
+## Training runs
+
+| Прогон | Модель | Данные | Hard neg | Seed | Пар | Лучшая эпоха | dev nDCG@10 (база → лучший) | Время, мин | Пик памяти, ГБ |
+|---|---|---|---|---:|---:|---:|---:|---:|---:|
+| e1_small_both_hn | multilingual-e5-small | llm+titles x1 | да | 42 | 12298 | 1.98 | 0.816 → 0.850 | 5.6 | 2.11 |
+| e1_small_both_inb | multilingual-e5-small | llm+titles x1 | нет | 42 | 12298 | 0.74 | 0.816 → 0.844 | 3.6 | 2.09 |
+| e1_small_llm_hn | multilingual-e5-small | llm x1 | да | 42 | 9139 | 1.00 | 0.816 → 0.850 | 3.9 | 2.09 |
+| e1_small_llm_hn_s43 | multilingual-e5-small | llm x1 | да | 43 | 9139 | 1.75 | 0.816 → 0.845 | 3.9 | 2.09 |
+| e1_small_llm_hn_s44 | multilingual-e5-small | llm x1 | да | 44 | 9139 | 1.00 | 0.816 → 0.845 | 3.9 | 2.09 |
+| e1_small_llm_inb | multilingual-e5-small | llm x1 | нет | 42 | 9139 | 2.00 | 0.816 → 0.843 | 3.0 | 2.08 |
+| e1_small_titles_hn | multilingual-e5-small | titles x1 | да | 42 | 3159 | 0.24 | 0.816 → 0.826 | 2.3 | 2.08 |
+| e1_small_titles_inb | multilingual-e5-small | titles x1 | нет | 42 | 3159 | 0.24 | 0.816 → 0.824 | 2.1 | 2.00 |
+| e2_base_both_hn | multilingual-e5-base | llm+titles x1 | да | 42 | 12298 | 0.74 | 0.828 → 0.846 | 10.3 | 3.55 |
+| e2_base_llm_hn | multilingual-e5-base | llm x1 | да | 42 | 9139 | 1.00 | 0.828 → 0.850 | 8.2 | 3.54 |
+| e2_base_llm_hn_s43 | multilingual-e5-base | llm x1 | да | 43 | 9139 | 2.00 | 0.828 → 0.849 | 8.2 | 3.54 |
+| e2_base_llm_hn_s44 | multilingual-e5-base | llm x1 | да | 44 | 9139 | 1.00 | 0.828 → 0.854 | 8.2 | 3.54 |
+| e4_small_llm_hn_f25 | multilingual-e5-small | llm x0.25 | да | 42 | 2285 | 0.22 | 0.816 → 0.833 | 2.2 | 2.08 |
+| e4_small_llm_hn_f50 | multilingual-e5-small | llm x0.5 | да | 42 | 4570 | 1.50 | 0.816 → 0.838 | 2.7 | 2.08 |
+
+## Bootstrap
+
+| A | B | набор | срез | n | Δ nDCG@10 | 95% ДИ | p |
+|---|---|---|---|---:|---:|---:|---:|
+| ft-e5-small | e5-small | test/chunk | all | 728 | +0.043 | [+0.028; +0.058] | 0.000 |
+| ft-e5-small | e5-small | test/chunk | slice=seen | 293 | +0.050 | [+0.026; +0.075] | 0.000 |
+| ft-e5-small | e5-small | test/chunk | slice=unseen_articles | 218 | +0.055 | [+0.028; +0.085] | 0.000 |
+| ft-e5-small | e5-small | test/chunk | slice=unseen_codes | 217 | +0.021 | [-0.007; +0.049] | 0.151 |
+| ft-e5-small | FRIDA | test/chunk | all | 728 | -0.034 | [-0.052; -0.015] | 0.000 |
+| ft-e5-small | FRIDA | test/chunk | slice=seen | 293 | -0.039 | [-0.068; -0.010] | 0.009 |
+| ft-e5-small | FRIDA | test/chunk | slice=unseen_articles | 218 | -0.029 | [-0.065; +0.006] | 0.113 |
+| ft-e5-small | FRIDA | test/chunk | slice=unseen_codes | 217 | -0.032 | [-0.065; +0.002] | 0.064 |
+| ft-e5-small | e5-large | test/chunk | all | 728 | -0.014 | [-0.031; +0.003] | 0.114 |
+| ft-e5-small | e5-large | test/chunk | slice=seen | 293 | -0.032 | [-0.061; -0.003] | 0.029 |
+| ft-e5-small | e5-large | test/chunk | slice=unseen_articles | 218 | -0.001 | [-0.033; +0.030] | 0.965 |
+| ft-e5-small | e5-large | test/chunk | slice=unseen_codes | 217 | -0.003 | [-0.032; +0.026] | 0.828 |
+| ft-e5-base | e5-base | test/chunk | all | 728 | +0.025 | [+0.008; +0.041] | 0.002 |
+| ft-e5-base | e5-base | test/chunk | slice=seen | 293 | +0.033 | [+0.008; +0.059] | 0.011 |
+| ft-e5-base | e5-base | test/chunk | slice=unseen_articles | 218 | +0.059 | [+0.027; +0.092] | 0.000 |
+| ft-e5-base | e5-base | test/chunk | slice=unseen_codes | 217 | -0.021 | [-0.049; +0.007] | 0.137 |
+| ft-e5-base | FRIDA | test/chunk | all | 728 | -0.032 | [-0.050; -0.013] | 0.000 |
+| ft-e5-base | FRIDA | test/chunk | slice=seen | 293 | -0.030 | [-0.058; -0.003] | 0.029 |
+| ft-e5-base | FRIDA | test/chunk | slice=unseen_articles | 218 | -0.015 | [-0.049; +0.019] | 0.373 |
+| ft-e5-base | FRIDA | test/chunk | slice=unseen_codes | 217 | -0.051 | [-0.087; -0.015] | 0.006 |
+| ft-e5-small | e5-small | test/article | all | 728 | +0.048 | [+0.031; +0.065] | 0.000 |
+| ft-e5-small | e5-small | test/article | slice=seen | 293 | +0.053 | [+0.025; +0.083] | 0.000 |
+| ft-e5-small | e5-small | test/article | slice=unseen_articles | 218 | +0.062 | [+0.029; +0.095] | 0.000 |
+| ft-e5-small | e5-small | test/article | slice=unseen_codes | 217 | +0.026 | [-0.002; +0.054] | 0.065 |
+| ft-e5-small | FRIDA | test/article | all | 728 | -0.056 | [-0.076; -0.036] | 0.000 |
+| ft-e5-small | FRIDA | test/article | slice=seen | 293 | -0.068 | [-0.099; -0.037] | 0.000 |
+| ft-e5-small | FRIDA | test/article | slice=unseen_articles | 218 | -0.049 | [-0.085; -0.014] | 0.006 |
+| ft-e5-small | FRIDA | test/article | slice=unseen_codes | 217 | -0.045 | [-0.082; -0.009] | 0.015 |
+| ft-e5-small | e5-small | golden/chunk | all | 174 | +0.038 | [+0.009; +0.069] | 0.011 |
+| ft-e5-small | e5-small | golden/chunk | slice=seen | 58 | +0.059 | [+0.006; +0.118] | 0.031 |
+| ft-e5-small | e5-small | golden/chunk | slice=unseen_articles | 58 | +0.037 | [-0.010; +0.089] | 0.131 |
+| ft-e5-small | e5-small | golden/chunk | slice=unseen_codes | 58 | +0.019 | [-0.029; +0.076] | 0.471 |
+| ft-e5-small | FRIDA | golden/chunk | all | 174 | -0.048 | [-0.078; -0.017] | 0.002 |
+| ft-e5-small | FRIDA | golden/chunk | slice=seen | 58 | -0.059 | [-0.109; -0.013] | 0.013 |
+| ft-e5-small | FRIDA | golden/chunk | slice=unseen_articles | 58 | -0.038 | [-0.099; +0.022] | 0.200 |
+| ft-e5-small | FRIDA | golden/chunk | slice=unseen_codes | 58 | -0.045 | [-0.094; +0.003] | 0.067 |
+| RRF(BM25+ft-e5-small) | ft-e5-small | test/chunk | all | 728 | -0.073 | [-0.092; -0.054] | 0.000 |
+| RRF(BM25+ft-e5-small) | ft-e5-small | test/chunk | slice=seen | 293 | -0.050 | [-0.078; -0.024] | 0.000 |
+| RRF(BM25+ft-e5-small) | ft-e5-small | test/chunk | slice=unseen_articles | 218 | -0.093 | [-0.132; -0.054] | 0.000 |
+| RRF(BM25+ft-e5-small) | ft-e5-small | test/chunk | slice=unseen_codes | 217 | -0.082 | [-0.119; -0.046] | 0.000 |
+| RRF(BM25+FRIDA) | FRIDA | test/chunk | all | 728 | -0.087 | [-0.107; -0.067] | 0.000 |
+| RRF(BM25+FRIDA) | FRIDA | test/chunk | slice=seen | 293 | -0.066 | [-0.096; -0.038] | 0.000 |
+| RRF(BM25+FRIDA) | FRIDA | test/chunk | slice=unseen_articles | 218 | -0.115 | [-0.157; -0.075] | 0.000 |
+| RRF(BM25+FRIDA) | FRIDA | test/chunk | slice=unseen_codes | 217 | -0.085 | [-0.121; -0.050] | 0.000 |
+| RRF(BM25+ft-e5-small) | FRIDA | test/chunk | all | 728 | -0.106 | [-0.129; -0.084] | 0.000 |
+| RRF(BM25+ft-e5-small) | FRIDA | test/chunk | slice=seen | 293 | -0.089 | [-0.123; -0.057] | 0.000 |
+| RRF(BM25+ft-e5-small) | FRIDA | test/chunk | slice=unseen_articles | 218 | -0.122 | [-0.170; -0.075] | 0.000 |
+| RRF(BM25+ft-e5-small) | FRIDA | test/chunk | slice=unseen_codes | 217 | -0.114 | [-0.155; -0.072] | 0.000 |
+

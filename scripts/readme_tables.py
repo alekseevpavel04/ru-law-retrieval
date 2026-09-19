@@ -45,8 +45,10 @@ def golden_table() -> str:
     t = pd.read_csv(R / "main_table.csv")
     t = t[(t["set"] == "golden") & (t["protocol"] == "chunk")].sort_values("ndcg@10", ascending=False)
     lines = ["| Модель | nDCG@10 [95% ДИ] | Recall@10 |", "|---|---:|---:|"]
-    lines += [f"| {r['model']} | {fmt(r['ndcg@10'])} [{fmt(r['ci_low'])}; {fmt(r['ci_high'])}] | {fmt(r['recall@10'])} |"
-              for _, r in t.iterrows()]  # fmt: skip
+    lines += [
+        f"| {r['model']} | {fmt(r['ndcg@10'])} [{fmt(r['ci_low'])}; {fmt(r['ci_high'])}] | {fmt(r['recall@10'])} |"
+        for _, r in t.iterrows()
+    ]
     return "\n".join(lines)
 
 

@@ -20,19 +20,27 @@ def run_task(name: str, path: str, tasks: list[str], query_prompt: str, doc_prom
     import torch
     from sentence_transformers import SentenceTransformer
 
-    st = SentenceTransformer(path, device="cuda" if torch.cuda.is_available() else "cpu",
-                             model_kwargs={"torch_dtype": torch.float16})  # fmt: skip
+    st = SentenceTransformer(
+        path, device="cuda" if torch.cuda.is_available() else "cpu", model_kwargs={"torch_dtype": torch.float16}
+    )
     st.max_seq_length = 512
     model = mteb.SentenceTransformerEncoderWrapper(st, model_prompts={"query": query_prompt, "document": doc_prompt})
     cache = mteb.ResultCache(cache_path=Path(os.environ["MTEB_CACHE"]) / name)
     t0 = time.time()
-    res = mteb.evaluate(model, mteb.get_tasks(tasks=tasks), cache=cache, overwrite_strategy="always",
-                        encode_kwargs={"batch_size": 64}, show_progress_bar=False)  # fmt: skip
+    res = mteb.evaluate(
+        model,
+        mteb.get_tasks(tasks=tasks),
+        cache=cache,
+        overwrite_strategy="always",
+        encode_kwargs={"batch_size": 64},
+        show_progress_bar=False,
+    )
     out = {"model": name, "path": path, "seconds": round(time.time() - t0, 1), "tasks": {}}
     for tr in res.task_results:
         scores = tr.scores["test"][0] if "test" in tr.scores else next(iter(tr.scores.values()))[0]
-        out["tasks"][tr.task_name] = {k: scores[k] for k in ("main_score", "ndcg_at_10", "recall_at_10", "mrr_at_10")
-                                      if k in scores}  # fmt: skip
+        out["tasks"][tr.task_name] = {
+            k: scores[k] for k in ("main_score", "ndcg_at_10", "recall_at_10", "mrr_at_10") if k in scores
+        }
     return out
 
 

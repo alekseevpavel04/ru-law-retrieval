@@ -57,7 +57,12 @@ def test_relevant_beats_irrelevant_and_st_prompts(m):
     from rlr.eval.retrieve import DenseEncoder
 
     enc = DenseEncoder(
-        m["path"], m["query_prompt"], m["doc_prompt"], padding_side=m.get("padding_side"), name=m["name"]
+        m["path"],
+        m["query_prompt"],
+        m["doc_prompt"],
+        dtype=m.get("dtype", CFG["dtype"]),
+        padding_side=m.get("padding_side"),
+        name=m["name"],
     )
     q = enc.encode_queries([QUERY])
     d = enc.encode([RELEVANT, IRRELEVANT], m["doc_prompt"])
