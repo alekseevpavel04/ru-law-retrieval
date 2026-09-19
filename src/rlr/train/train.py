@@ -176,6 +176,8 @@ def run(cfg: dict, max_steps: int = -1, use_wandb: bool = False, out_name: str |
     model.max_seq_length = cfg["max_seq_length"]
     if cfg.get("freeze_embeddings", True):
         model[0].auto_model.get_input_embeddings().requires_grad_(False)
+    if cfg.get("grad_checkpointing", False):  # only without GradCache (distillation stage): activations do not fit
+        model[0].auto_model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
     n_params = sum(p.numel() for p in model.parameters())
     n_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
 

@@ -46,3 +46,10 @@ class _FakeStemmer:
 def test_bm25_tokenize_lower_yo_and_stem():
     assert bm25_tokenize(["Ёлки-Палки, ЗАЁМ 2024"], None) == [["елки", "палки", "заем", "2024"]]
     assert bm25_tokenize(["увольнение"], _FakeStemmer()) == [["уволь"]]
+
+
+def test_any_chunk_view_is_aggregated_to_articles():
+    corpus = Corpus("chunk_tkfmt", ["a#0", "a#1", "b#0"], ["", "", ""], np.array([0, 0, 1]), ["a", "b"])
+    units = np.array([[1.0, 0.0], [0.8, 0.6], [0.0, 1.0]], dtype=np.float32)
+    (ranking,) = dense_search(np.array([[0.6, 0.8]], dtype=np.float32), units, corpus, k=5, device="cpu")
+    assert [d for d, _ in ranking] == ["a", "b"]

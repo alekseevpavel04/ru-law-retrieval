@@ -1,0 +1,31 @@
+{
+ "raw_files": [
+  "train_raw.jsonl",
+  "train_raw_v2.jsonl"
+ ],
+ "filters": {
+  "train_drop_article_ref": 233,
+  "train_drop_copy_ngram": 330,
+  "train_drop_exact_dup": 490,
+  "train_drop_length": 111,
+  "train_drop_near_dup": 3728,
+  "train_drop_near_dup_of_eval": 139,
+  "train_generated": 21816
+ },
+ "train": 16785,
+ "by_prompt_version": {
+  "v1": 9137,
+  "v2": 7648
+ },
+ "by_type": {
+  "everyday": 6614,
+  "search": 4843,
+  "legal": 5328
+ },
+ "by_code": {
+  "gk": 7690,
+  "koap": 5240,
+  "tk": 2468,
+  "zhk": 1387
+ }
+}

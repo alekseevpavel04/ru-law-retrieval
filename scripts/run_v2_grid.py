@@ -105,6 +105,7 @@ def main() -> None:
             "loss": "distill_kl",
             "teacher_temperature": t,
             "batch_size": 32,
+            "grad_checkpointing": True,
             "lr": 1.0e-5,
             "epochs": 1,
             "stage1": best["name"],

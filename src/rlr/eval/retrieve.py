@@ -192,7 +192,7 @@ def dense_search(
     for i in range(0, len(query_emb), 256):
         q = torch.as_tensor(query_emb[i : i + 256], device=device)
         scores = q @ units.T
-        if corpus.view == "chunk":
+        if corpus.view != "article":
             scores = aggregate_max(scores, corpus.unit_article, len(corpus.article_ids))
         results += topk_articles(scores, corpus.article_ids, k)
     return results
@@ -236,7 +236,7 @@ class BM25Retriever:
             batch = tokenized[i : i + 256]
             scores = np.stack([self.model.get_scores(q) if q else np.zeros(n_units) for q in batch]).astype(np.float32)
             st = torch.as_tensor(scores)
-            if self.corpus.view == "chunk":
+            if self.corpus.view != "article":
                 st = aggregate_max(st, self.corpus.unit_article, len(self.corpus.article_ids))
             results += topk_articles(st, self.corpus.article_ids, k)
         return results

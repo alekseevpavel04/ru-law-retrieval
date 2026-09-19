@@ -235,7 +235,7 @@ def build_tkhard_main() -> None:
     articles = {a["doc_id"]: a for a in read_jsonl(CORPUS / "articles.jsonl")}
     enc = load_encoder()
     refs = []
-    for name in ("train_llm", "train_llm_v12"):
+    for name in ("train_llm", "train_titles", "train_llm_v12"):
         if (DATASET / f"{name}.jsonl").exists():
             refs.append(enc.encode_queries([q["text"] for q in read_jsonl(DATASET / f"{name}.jsonl")]))
     if (GEN / "train_raw_v2.jsonl").exists():  # raw v2 questions too (before its own dedup)

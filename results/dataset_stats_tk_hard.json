@@ -1,0 +1,15 @@
+{
+ "filters": {
+  "tkhard_drop_exact_dup": 2,
+  "tkhard_drop_judge_no": 5,
+  "tkhard_drop_near_dup_of_train": 217,
+  "tkhard_generated": 940
+ },
+ "tk_hard": 716,
+ "by_slice_type": {
+  "seen/everyday": 399,
+  "seen/search": 245,
+  "unseen_articles/everyday": 37,
+  "unseen_articles/search": 35
+ }
+}
