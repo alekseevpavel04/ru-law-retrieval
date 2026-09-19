@@ -33,12 +33,15 @@ def main(argv: list[str] | None = None) -> None:
         [{"_id": c["chunk_id"], "doc_id": c["doc_id"], "text": c["text"]} for c in chunks],
     )
 
+    train_file = "train_llm_v12" if (DATASET / "train_llm_v12.jsonl").exists() else "train_llm"
     splits = {
-        "train": read_jsonl(DATASET / "train_llm.jsonl") + read_jsonl(DATASET / "train_titles.jsonl"),
+        "train": read_jsonl(DATASET / f"{train_file}.jsonl") + read_jsonl(DATASET / "train_titles.jsonl"),
         "dev": read_jsonl(DATASET / "dev.jsonl"),
         "test": read_jsonl(DATASET / "test.jsonl"),
         "golden": read_jsonl(DATASET / "golden.jsonl"),
     }
+    if (DATASET / "tk_hard.jsonl").exists():
+        splits["tk_hard"] = read_jsonl(DATASET / "tk_hard.jsonl")
     counts = {}
     for split, rows in splits.items():
         queries, qrels = [], []
@@ -59,7 +62,14 @@ def main(argv: list[str] | None = None) -> None:
         counts[split] = {"queries": len(queries), "qrels": len(qrels)}
 
     (OUT / "stats").mkdir(parents=True)
-    for name in ("dataset_stats.json", "corpus_stats.json", "golden_stats.json", "lexical_overlap.csv"):
+    for name in (
+        "dataset_stats.json",
+        "dataset_stats_train_llm_v12.json",
+        "dataset_stats_tk_hard.json",
+        "corpus_stats.json",
+        "golden_stats.json",
+        "lexical_overlap.csv",
+    ):
         if (RESULTS / name).exists():
             shutil.copy(RESULTS / name, OUT / "stats" / name)
     shutil.copy(DATA / "splits" / "splits.json", OUT / "stats" / "splits.json")

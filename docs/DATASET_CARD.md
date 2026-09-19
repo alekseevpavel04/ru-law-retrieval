@@ -31,6 +31,8 @@ configs:
     path: queries/test.jsonl
   - split: golden
     path: queries/golden.jsonl
+  - split: tk_hard
+    path: queries/tk_hard.jsonl
 - config_name: default
   data_files:
   - split: train
@@ -41,6 +43,8 @@ configs:
     path: qrels/test.jsonl
   - split: golden
     path: qrels/golden.jsonl
+  - split: tk_hard
+    path: qrels/tk_hard.jsonl
 - config_name: chunks
   data_files:
   - split: corpus
@@ -72,11 +76,14 @@ configs:
 
 | Сплит | Запросов | Генератор | Проверка |
 |---|---:|---|---|
-| train | 9 139 | Qwen3-8B (Q4_K_M, без рассуждений) | фильтры + дедупликация |
+| train | 16 785 | Qwen3-8B (Q4_K_M, без рассуждений), два прохода с разными промптами | фильтры + дедупликация |
 | train (заголовки) | 3 159 | нет: запрос = название статьи | нет |
 | dev | 296 | YandexGPT-5-Lite-8B-instruct (Q4_K_M) | LLM-судья Qwen3-8B |
 | test | 728 | YandexGPT-5-Lite-8B-instruct (Q4_K_M) | LLM-судья Qwen3-8B |
 | golden (из test) | 174 | то же | повторная разметка, см. ниже |
+| tk_hard | 716 | то же, только по Трудовому кодексу | LLM-судья + дедуп против train |
+
+**tk_hard** это отдельный трудный тест для сервисов по одному кодексу: бытовые вопросы и короткие поисковые запросы (самые сложные типы) к статьям ТК, по одному каждого типа на статью. Вопросы, слишком близкие к любому обучающему вопросу, удалены из теста (217 штук). На нём BM25 даёт 0.48 против 0.67 на основном тесте, то есть набор заметно труднее.
 
 Три типа вопросов (поле `qtype`): `everyday` (бытовая ситуация без терминов), `search` (запрос из 3-7 слов), `legal` (вопрос юриста). В dev/test по одному вопросу на статью, типы сбалансированы.
 
@@ -95,11 +102,11 @@ Test, протокол chunk: статья получает максимум sco
 | Модель | nDCG@10 | seen | unseen_articles | unseen_codes |
 |---|---:|---:|---:|---:|
 | ai-forever/FRIDA | 0.878 [0.859; 0.896] | 0.874 | 0.873 | 0.890 |
+| [multilingual-e5-small-ru-law](https://huggingface.co/alekseevpavel04/multilingual-e5-small-ru-law) (дообучена на train) | 0.859 [0.840; 0.878] | 0.865 | 0.847 | 0.863 |
 | intfloat/multilingual-e5-large-instruct | 0.865 [0.846; 0.883] | 0.866 | 0.860 | 0.868 |
 | intfloat/multilingual-e5-large | 0.859 [0.839; 0.877] | 0.867 | 0.845 | 0.861 |
 | BAAI/bge-m3 | 0.856 [0.836; 0.875] | 0.853 | 0.845 | 0.872 |
 | deepvk/USER-bge-m3 | 0.846 [0.825; 0.866] | 0.851 | 0.831 | 0.853 |
-| [multilingual-e5-small-ru-law](https://huggingface.co/alekseevpavel04/multilingual-e5-small-ru-law) (дообучена на train) | 0.845 [0.824; 0.864] | 0.835 | 0.845 | 0.858 |
 | Qwen/Qwen3-Embedding-0.6B | 0.843 [0.823; 0.863] | 0.834 | 0.840 | 0.859 |
 | ai-forever/ru-en-RoSBERTa | 0.840 [0.819; 0.859] | 0.844 | 0.837 | 0.837 |
 | intfloat/multilingual-e5-base | 0.822 [0.800; 0.843] | 0.810 | 0.799 | 0.860 |
@@ -107,6 +114,8 @@ Test, протокол chunk: статья получает максимум sco
 | BM25 (bm25s + русский стеммер) | 0.670 [0.640; 0.700] | 0.679 | 0.640 | 0.689 |
 
 Самые трудные вопросы бытовые (`everyday`): e5-small 0.569, FRIDA 0.764, BM25 0.265.
+
+На сплите `tk_hard` (nDCG@10, chunk): FRIDA 0.854, e5-large 0.820, [дообученная e5-small](https://huggingface.co/alekseevpavel04/multilingual-e5-small-ru-law) 0.820, исходная e5-small 0.710, BM25 0.480.
 
 ## Формат
 

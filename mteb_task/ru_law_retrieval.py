@@ -21,7 +21,7 @@ class RuLawRetrieval(AbsTaskRetrieval):
         reference="https://github.com/alekseevpavel04/ru-law-retrieval",
         dataset={
             "path": "alekseevpavel04/ru-law-retrieval",
-            "revision": "3140155485a50362c99bcf8a26b183dca38b4931",
+            "revision": "96f4fe0396deab693bd2e1cdeda1f276b5a1b5d4",
         },
         type="Retrieval",
         category="t2t",

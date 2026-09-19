@@ -357,8 +357,8 @@ def main(argv: list[str] | None = None) -> None:
     if args.what == "report":
         report(args.models, args.finetuned, args.focus)
     elif args.what == "hero":
-        if (RESULTS / "summary" / "ft2-e5-small.json").exists():
-            hero("e5-small", "ft2-e5-small", ["e5-large", "FRIDA"], v1="ft-e5-small")
+        if (RESULTS / "summary" / "ft-e5-small-v2.json").exists():
+            hero("e5-small", "ft-e5-small-v2", ["e5-large", "FRIDA"], v1="ft-e5-small")
         else:
             hero("e5-small", "ft-e5-small", ["e5-large", "FRIDA"])
     elif args.what == "learning":

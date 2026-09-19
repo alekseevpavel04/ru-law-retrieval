@@ -192,7 +192,7 @@
       "is_best": true,
       "eval_seconds": 21.6
      },
-     "model_dir": "models\\v2e_ep3\\best"
+     "model_dir": "D:\\VScode_projects\\ru-law-retrieval\\models\\v2e_ep3\\best"
     },
     {
      "name": "v2e_bs256",
@@ -259,7 +259,7 @@
       "is_best": true,
       "eval_seconds": 20.7
      },
-     "model_dir": "models\\v2e_ep3_s43\\best"
+     "model_dir": "D:\\VScode_projects\\ru-law-retrieval\\models\\v2e_ep3_s43\\best"
     },
     {
      "name": "v2e_ep3_s44",
@@ -278,15 +278,82 @@
       "is_best": true,
       "eval_seconds": 20.8
      },
-     "model_dir": "models\\v2e_ep3_s44\\best"
+     "model_dir": "D:\\VScode_projects\\ru-law-retrieval\\models\\v2e_ep3_s44\\best"
     }
    ]
+  },
+  "F": {
+   "runs": [
+    {
+     "name": "v2f_distill_from_v2e_ep3",
+     "dev": 0.8551100299610611,
+     "best": {
+      "step": 250,
+      "epoch": 0.5,
+      "ndcg@10": 0.8551100299610611,
+      "recall@5": 0.8969594594594594,
+      "recall@10": 0.9425675675675675,
+      "mrr@10": 0.8274620602745602,
+      "ndcg@10_seen": 0.8549475982635246,
+      "ndcg@10_unseen_articles": 0.8555973250536707,
+      "ndcg@10_view_chunk": 0.8574821267964066,
+      "ndcg@10_view_chunk_tkfmt": 0.8527379331257157,
+      "is_best": true,
+      "eval_seconds": 21.7
+     },
+     "model_dir": "D:\\VScode_projects\\ru-law-retrieval\\models\\v2f_distill_from_v2e_ep3\\best"
+    },
+    {
+     "name": "v2f_distill_from_v2e_ep3_s43",
+     "dev": 0.8563686949418619,
+     "best": {
+      "step": 125,
+      "epoch": 0.25,
+      "ndcg@10": 0.8563686949418619,
+      "recall@5": 0.9003378378378378,
+      "recall@10": 0.9341216216216217,
+      "mrr@10": 0.8313404922779923,
+      "ndcg@10_seen": 0.8577015701205914,
+      "ndcg@10_unseen_articles": 0.8523700694056733,
+      "ndcg@10_view_chunk": 0.8559101012428498,
+      "ndcg@10_view_chunk_tkfmt": 0.8568272886408739,
+      "is_best": true,
+      "eval_seconds": 21.3
+     },
+     "model_dir": "D:\\VScode_projects\\ru-law-retrieval\\models\\v2f_distill_from_v2e_ep3_s43\\best"
+    },
+    {
+     "name": "v2f_distill_from_v2e_ep3_s44",
+     "dev": 0.8519934673847911,
+     "best": {
+      "step": 125,
+      "epoch": 0.25,
+      "ndcg@10": 0.8519934673847911,
+      "recall@5": 0.8902027027027026,
+      "recall@10": 0.9307432432432432,
+      "mrr@10": 0.82694793007293,
+      "ndcg@10_seen": 0.8577255055758031,
+      "ndcg@10_unseen_articles": 0.8347973528117554,
+      "ndcg@10_view_chunk": 0.8539637788693282,
+      "ndcg@10_view_chunk_tkfmt": 0.850023155900254,
+      "is_best": true,
+      "eval_seconds": 21.1
+     },
+     "model_dir": "D:\\VScode_projects\\ru-law-retrieval\\models\\v2f_distill_from_v2e_ep3_s44\\best"
+    }
+   ],
+   "kept": true,
+   "compared_to": "v2e_ep3"
   }
  },
  "final": {
-  "name": "v2e_ep3",
-  "dev": 0.8522745690389522,
-  "model_dir": "models\\v2e_ep3\\best",
-  "recipe": "stage1 (v2e_ep3)"
+  "name": "v2f_distill_from_v2e_ep3",
+  "dev": 0.8551100299610611,
+  "model_dir": "D:\\VScode_projects\\ru-law-retrieval\\models\\v2f_distill_from_v2e_ep3\\best",
+  "recipe": "stage1 (v2e_ep3) + distillation",
+  "seeds": [
+   "D:\\VScode_projects\\ru-law-retrieval\\models\\v2f_distill_from_v2e_ep3_s43\\best",
+   "D:\\VScode_projects\\ru-law-retrieval\\models\\v2f_distill_from_v2e_ep3_s44\\best"
+  ]
  }
 }

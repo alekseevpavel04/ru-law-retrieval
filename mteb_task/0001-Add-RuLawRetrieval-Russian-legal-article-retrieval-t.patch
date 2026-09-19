@@ -1,4 +1,4 @@
-From 7416d6636cc48610fc8500973bbf4c2df230e944 Mon Sep 17 00:00:00 2001
+From 3a9dda1fc61bcc18a62e792385272dd07cf00255 Mon Sep 17 00:00:00 2001
 From: alekseevpavel04 <alekceevpavel@mail.ru>
 Date: Sat, 19 Sep 2026 20:12:43 +0300
 Subject: [PATCH] Add RuLawRetrieval: Russian legal article retrieval task
@@ -75,7 +75,7 @@ index a17d67a..e96a159 100644
  ]
 diff --git a/mteb/tasks/retrieval/rus/ru_law_retrieval.py b/mteb/tasks/retrieval/rus/ru_law_retrieval.py
 new file mode 100644
-index 0000000..e3027e3
+index 0000000..5bf91b5
 --- /dev/null
 +++ b/mteb/tasks/retrieval/rus/ru_law_retrieval.py
 @@ -0,0 +1,43 @@
@@ -97,7 +97,7 @@ index 0000000..e3027e3
 +        reference="https://github.com/alekseevpavel04/ru-law-retrieval",
 +        dataset={
 +            "path": "alekseevpavel04/ru-law-retrieval",
-+            "revision": "3140155485a50362c99bcf8a26b183dca38b4931",
++            "revision": "96f4fe0396deab693bd2e1cdeda1f276b5a1b5d4",
 +        },
 +        type="Retrieval",
 +        category="t2t",

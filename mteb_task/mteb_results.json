@@ -10,8 +10,8 @@
   "mrr_at_10": 0.7179672510029653
  },
  "alekseevpavel04/multilingual-e5-small-ru-law": {
-  "ndcg_at_10": 0.80518,
-  "recall_at_10": 0.92445,
-  "mrr_at_10": 0.7668225623582765
+  "ndcg_at_10": 0.82259,
+  "recall_at_10": 0.93132,
+  "mrr_at_10": 0.7872988618524331
  }
 }

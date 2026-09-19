@@ -202,7 +202,8 @@
   "e5-small": 0.68577,
   "ft-e5-small": 0.65074,
   "e5-base": 0.69475,
-  "ft-e5-base": 0.63178
+  "ft-e5-base": 0.63178,
+  "ft2-e5-small": 0.66056
  },
  "training_total_min_all_runs": 68.3,
  "training_min_final_small": 3.91,

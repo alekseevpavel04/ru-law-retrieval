@@ -1,6 +1,6 @@
 # v2 grid (scripts/run_v2_grid.py)
 experiment: V2
-base_model: models\v2e_ep3\best
+base_model: D:\VScode_projects\ru-law-retrieval\models\v2e_ep3\best
 train_file: train_llm_v12_teacher
 negatives: teacher
 loss: distill_kl

@@ -6,7 +6,7 @@ export PYTHONIOENCODING=utf-8
 PY=.venv/Scripts/python.exe
 SETS="dev test golden external tk_hard"
 PROTO="article chunk chunk_tkfmt"
-read -r FINAL S43 S44 < <($PY - <<'PYEOF'
+read -r FINAL S43 S44 < <($PY - <<'PYEOF' | tr -d '\r'
 import json
 s = json.load(open("results/v2_selection.json", encoding="utf-8"))
 f = s["final"]["model_dir"]

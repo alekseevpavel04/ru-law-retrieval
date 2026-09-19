@@ -1,8 +1,11 @@
-group,base,finetuned,e5-large,FRIDA
-all test questions (n=728),0.8020,0.8447,0.8587,0.8783
-seen articles (n=293),0.7851,0.8348,0.8668,0.8735
-unseen articles (n=218),0.7894,0.8446,0.8453,0.8733
-"unseen codes (SK, ZoZPP) (n=217)",0.8374,0.8582,0.8612,0.8898
-everyday questions (n=242),0.5694,0.6870,0.7167,0.7637
-search queries (n=243),0.8962,0.9074,0.9135,0.9357
-lawyer questions (n=243),0.9394,0.9390,0.9454,0.9350
+group,base,finetuned,e5-large,FRIDA,v1
+test: all questions (n=728),0.8020,0.8593,0.8587,0.8783,0.8447
+test: seen articles (n=293),0.7851,0.8654,0.8668,0.8735,0.8348
+test: unseen articles (n=218),0.7894,0.8474,0.8453,0.8733,0.8446
+"test: unseen codes (SK, ZoZPP) (n=217)",0.8374,0.8631,0.8612,0.8898,0.8582
+test: everyday questions (n=242),0.5694,0.7014,0.7167,0.7637,0.6870
+test: search queries (n=243),0.8962,0.9238,0.9135,0.9357,0.9074
+test: lawyer questions (n=243),0.9394,0.9521,0.9454,0.9350,0.9390
+TK-hard: all (n=716),0.7104,0.8198,0.8202,0.8542,0.7949
+TK-hard: everyday (n=436),0.6206,0.7545,0.7510,0.8172,0.7391
+TK-hard: search (n=280),0.8503,0.9215,0.9279,0.9117,0.8817
