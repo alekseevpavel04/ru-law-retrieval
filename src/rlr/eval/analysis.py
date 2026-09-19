@@ -1,0 +1,118 @@
+"""Analysis: lexical difficulty, result tables and figures from ``results/``.
+
+Every figure is saved together with the exact table it was drawn from (CSV), so
+all numbers in README can be traced to a file produced by a script.
+
+Usage:
+  python -m rlr analysis lexical
+  python -m rlr analysis tables --models ... --finetuned ...
+"""
+
+import argparse
+import json
+from collections import defaultdict
+
+import pandas as pd
+
+from rlr.data.parse import CORPUS, read_jsonl
+from rlr.env import DATA, RESULTS
+from rlr.eval.retrieve import TOKEN_RE
+
+DATASET = DATA / "dataset"
+FIG = RESULTS / "figures"
+
+
+def stem_set(text: str, stemmer) -> set[str]:
+    return set(stemmer.stemWords([w.lower().replace("ё", "е") for w in TOKEN_RE.findall(text)]))
+
+
+def lexical_overlap() -> pd.DataFrame:
+    """Share of (stemmed) question words that also occur in the gold article."""
+    import Stemmer
+
+    stemmer = Stemmer.Stemmer("russian")
+    articles = {a["doc_id"]: a for a in read_jsonl(CORPUS / "articles.jsonl")}
+    art_stems: dict[str, set[str]] = {}
+    rows = []
+    sources = {
+        "train_llm": DATASET / "train_llm.jsonl",
+        "train_titles": DATASET / "train_titles.jsonl",
+        "dev": DATASET / "dev.jsonl",
+        "test": DATASET / "test.jsonl",
+    }
+    for split, path in sources.items():
+        for q in read_jsonl(path):
+            d = q["doc_id"]
+            if d not in art_stems:
+                art_stems[d] = stem_set(articles[d]["title"] + " " + articles[d]["text"], stemmer)
+            qs = stem_set(q["text"], stemmer)
+            if not qs:
+                continue
+            rows.append(
+                {
+                    "split": split,
+                    "generator": q.get("generator", "none"),
+                    "qtype": q["qtype"],
+                    "slice": q.get("slice", "train"),
+                    "overlap": len(qs & art_stems[d]) / len(qs),
+                    "n_words": len(qs),
+                }
+            )
+    df = pd.DataFrame(rows)
+    agg = (
+        df.groupby(["split", "generator", "qtype"])
+        .agg(
+            n=("overlap", "size"),
+            overlap_mean=("overlap", "mean"),
+            overlap_median=("overlap", "median"),
+            words_mean=("n_words", "mean"),
+        )
+        .reset_index()
+    )
+    agg.to_csv(RESULTS / "lexical_overlap.csv", index=False, float_format="%.4f")
+    return agg
+
+
+def load_summary(name: str) -> dict:
+    return json.loads((RESULTS / "summary" / f"{name}.json").read_text(encoding="utf-8"))
+
+
+def main_table(models: list[str], qset: str = "test", protocols=("chunk", "article")) -> pd.DataFrame:
+    rows = []
+    for m in models:
+        s = load_summary(m)
+        for protocol in protocols:
+            res = s["results"].get(f"{qset}/{protocol}")
+            if not res:
+                continue
+            row = {"model": m, "protocol": protocol, "params_m": round((s.get("params") or 0) / 1e6, 1)}
+            for key, label in (("all", "all"), ("slice=seen", "seen"), ("slice=unseen_articles", "unseen_articles"),
+                               ("slice=unseen_codes", "unseen_codes")):  # fmt: skip
+                if key in res:
+                    row[f"ndcg@10_{label}"] = res[key]["ndcg@10"]
+                    row[f"recall@10_{label}"] = res[key]["recall@10"]
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def breakdown(models: list[str], key: str, qset: str = "test", protocol: str = "chunk") -> pd.DataFrame:
+    rows = defaultdict(dict)
+    for m in models:
+        res = load_summary(m)["results"].get(f"{qset}/{protocol}", {})
+        for k, v in res.items():
+            if k.startswith(f"{key}="):
+                rows[m][k.split("=", 1)[1]] = v["ndcg@10"]
+    return pd.DataFrame(rows).T
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(prog="rlr analysis")
+    parser.add_argument("what", choices=["lexical"])
+    args = parser.parse_args(argv)
+    if args.what == "lexical":
+        agg = lexical_overlap()
+        print(agg.to_string(index=False))
+
+
+if __name__ == "__main__":
+    main()

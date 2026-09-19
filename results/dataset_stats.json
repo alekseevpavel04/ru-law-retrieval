@@ -1,0 +1,51 @@
+{
+ "filters": {
+  "eval_drop_copy_ngram": 70,
+  "eval_drop_exact_dup": 0,
+  "eval_drop_judge_no": 12,
+  "eval_drop_length": 3,
+  "eval_generated": 1039,
+  "train_drop_article_ref": 1,
+  "train_drop_copy_ngram": 34,
+  "train_drop_exact_dup": 26,
+  "train_drop_length": 7,
+  "train_drop_near_dup": 384,
+  "train_drop_near_dup_of_eval": 24,
+  "train_generated": 3573
+ },
+ "near_dup_threshold": 0.95,
+ "train_llm": 3097,
+ "train_titles": 3207,
+ "train_by_type": {
+  "everyday": 1081,
+  "search": 1002,
+  "legal": 1014
+ },
+ "train_by_code": {
+  "gk": 3097
+ },
+ "train_articles_covered": 1140,
+ "eval": {
+  "dev/seen": 202,
+  "dev/unseen_articles": 69,
+  "test/seen": 267,
+  "test/unseen_articles": 208,
+  "test/unseen_codes": 208
+ },
+ "eval_by_type": {
+  "dev/everyday": 96,
+  "dev/legal": 77,
+  "dev/search": 98,
+  "test/everyday": 241,
+  "test/legal": 202,
+  "test/search": 240
+ },
+ "test_by_code": {
+  "gk": 234,
+  "koap": 141,
+  "tk": 67,
+  "zhk": 33,
+  "sk": 160,
+  "zozpp": 48
+ }
+}

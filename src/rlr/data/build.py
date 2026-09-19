@@ -1,6 +1,6 @@
 """Build the final dataset from raw generations.
 
-dev/test: generation -> filters -> LLM judge ("no" dropped) -> exact dedup.
+dev/test: generation -> filters (no n-gram copy filter, see DECISIONS.md) -> LLM judge -> exact dedup.
 train:    generation -> filters -> exact dedup -> near-dup dedup inside train ->
           near-dups of dev/test questions are removed from train (never from test) ->
           positive chunk = best chunk of the own article by base e5-small.
@@ -74,7 +74,9 @@ def build_eval(articles: dict, splits: dict, counts: Counter) -> list[dict]:
             counts["eval_drop_invalid_json"] += 1
             continue
         text = article_parts(articles[r["doc_id"]]["text"])[r["part"]]
-        reason = run_filters(q, r["qtype"], text)
+        # the n-gram copy filter is train-only: for dev/test it removed ~18% of "legal" questions
+        # (legal terms are long fixed phrases); lexical overlap is measured instead (analysis lexical)
+        reason = run_filters(q, r["qtype"], text, copy_check=False)
         if reason:
             counts[f"eval_drop_{reason}"] += 1
             continue

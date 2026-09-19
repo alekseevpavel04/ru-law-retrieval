@@ -64,13 +64,13 @@ def check_copy(question: str, source_ngrams: set[tuple[str, ...]], n: int = 6) -
     return None
 
 
-def run_filters(question: str, qtype: str, source_text: str, n: int = 6) -> str | None:
+def run_filters(question: str, qtype: str, source_text: str, n: int = 6, copy_check: bool = True) -> str | None:
     if not question or not question.strip():
         return "empty"
     for reason in (
         check_length(question, qtype),
         check_article_ref(question),
-        check_copy(question, ngrams(words(source_text), n), n),
+        check_copy(question, ngrams(words(source_text), n), n) if copy_check else None,
     ):
         if reason:
             return reason

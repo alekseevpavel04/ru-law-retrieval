@@ -44,3 +44,9 @@ def test_run_filters_order_and_pass():
 
 def test_exact_duplicates_normalized():
     assert exact_duplicates(["Ёлка, срок?", "елка срок", "другое"]) == [False, True, False]
+
+
+def test_copy_check_can_be_disabled():
+    q = "Правда что предупредить работника о предстоящем увольнении персонально нужно?"
+    assert run_filters(q, "legal", SOURCE) == "copy_ngram"
+    assert run_filters(q, "legal", SOURCE, copy_check=False) is None
