@@ -15,13 +15,18 @@ def ndcg(name: str, qset: str = "test", protocol: str = "chunk", key: str = "all
 
 
 out: dict = {}
-for fam, runs in {
-    "ft-e5-small": ["ft-e5-small", "ft-e5-small-s43", "ft-e5-small-s44"],
+FAMILIES = {
+    "ft-e5-small": ["ft-e5-small", "ft-e5-small-s43", "ft-e5-small-s44"],  # v1 (3 seeds)
+    "ft-e5-small-v2": ["ft2-e5-small", "ft-e5-small-v2", "ft2-e5-small-s44"],  # v2 (seeds 42, 43, 44)
     "ft-e5-base": ["ft-e5-base", "ft-e5-base-s43", "ft-e5-base-s44"],
-}.items():
-    for qset in ("test", "golden", "dev"):
-        for protocol in ("chunk", "article"):
-            v = np.array([ndcg(r, qset, protocol) for r in runs])
+}
+for fam, runs in FAMILIES.items():
+    for qset in ("test", "golden", "tk_hard", "dev"):
+        for protocol in ("chunk", "article", "chunk_tkfmt"):
+            try:
+                v = np.array([ndcg(r, qset, protocol) for r in runs])
+            except (FileNotFoundError, KeyError):
+                continue
             out[f"{fam}/{qset}/{protocol}"] = {
                 "seeds": [42, 43, 44],
                 "values": v.round(4).tolist(),
@@ -29,37 +34,25 @@ for fam, runs in {
                 "std": round(float(v.std(ddof=1)), 4),
             }
     for sl in ("seen", "unseen_articles", "unseen_codes"):
-        v = np.array([ndcg(r, "test", "chunk", f"slice={sl}") for r in runs])
+        try:
+            v = np.array([ndcg(r, "test", "chunk", f"slice={sl}") for r in runs])
+        except KeyError:
+            continue
         out[f"{fam}/test/chunk/{sl}"] = {"mean": round(float(v.mean()), 4), "std": round(float(v.std(ddof=1)), 4)}
 
-base, ft, large, frida = ndcg("e5-small"), ndcg("ft-e5-small"), ndcg("e5-large"), ndcg("FRIDA")
-out["gap_closed_to_e5_large_seed42"] = round((ft - base) / (large - base), 4)
-out["gap_closed_to_FRIDA_seed42"] = round((ft - base) / (frida - base), 4)
-m = out["ft-e5-small/test/chunk"]["mean"]
-out["gap_closed_to_e5_large_seed_mean"] = round((m - base) / (large - base), 4)
-
-sp = pd.DataFrame(json.loads((R / "speed.json").read_text(encoding="utf-8")))
-cpu = sp[sp.device == "cpu"].set_index("model")
-out["cpu_latency_ratio_e5_large_vs_ft_small"] = round(
-    cpu.loc["e5-large", "latency_ms_p50"] / cpu.loc["ft-e5-small", "latency_ms_p50"], 2
-)
-out["cpu_latency_ratio_FRIDA_vs_ft_small"] = round(
-    cpu.loc["FRIDA", "latency_ms_p50"] / cpu.loc["ft-e5-small", "latency_ms_p50"], 2
-)
-out["index_ratio_e5_large_vs_ft_small"] = round(
-    cpu.loc["e5-large", "index_mb_fp32"] / cpu.loc["ft-e5-small", "index_mb_fp32"], 2
-)
-out["params_ratio_e5_large_vs_small"] = round(cpu.loc["e5-large", "params_m"] / cpu.loc["ft-e5-small", "params_m"], 2)
-
-fg = json.loads((R / "forgetting.json").read_text(encoding="utf-8"))
-out["rubq_ndcg@10"] = {k: v["tasks"]["RuBQRetrieval"]["ndcg_at_10"] for k, v in fg.items()}
-
-train = pd.read_csv(R / "train_runs.csv")
-e1_to_e4 = train[~train.run.str.contains("_s4")]
-out["training_total_min_all_runs"] = round(float(train["train_min"].sum()), 1)
-out["training_min_final_small"] = float(train.set_index("run").loc["e1_small_llm_hn", "train_min"])
-out["peak_mem_gb_max"] = float(train["peak_mem_gb"].max())
-(R / "headline.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
+published = "ft-e5-small-v2"  # seed 43: best dev among the three seeds
+base, v1, v2 = ndcg("e5-small"), ndcg("ft-e5-small"), ndcg(published)
+large, frida = ndcg("e5-large"), ndcg("FRIDA")
+out["published_model"] = {
+    "name": published,
+    "checkpoint": "models/v2f_distill_from_v2e_ep3_s43/best",
+    "selected_by": "best dev nDCG@10 (mean of two chunk views) among seeds 42/43/44",
+}
+out["gap_closed_to_e5_large_v1"] = round((v1 - base) / (large - base), 4)
+out["gap_closed_to_e5_large_v2"] = round((v2 - base) / (large - base), 4)
+out["gap_closed_to_FRIDA_v2"] = round((v2 - base) / (frida - base), 4)
+for qset in ("test", "tk_hard", "golden"):
+    out[f"{qset}/published_vs_base"] = round(ndcg(published, qset) - ndcg("e5-small", qset), 4)
 
 # ablation: E1/E2/E4 checkpoints, dev and test (chunk)
 names = {

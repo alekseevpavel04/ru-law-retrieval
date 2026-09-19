@@ -110,6 +110,20 @@ def breakdown(models: list[str], key: str, qset: str = "test", protocol: str = "
     return pd.DataFrame(rows).T
 
 
+def _data_label(cfg: dict) -> str:
+    """v1 configs list data sources explicitly; v2 configs name a prepared train file."""
+    if "data" in cfg:
+        return "+".join(k for k in ("llm", "titles") if cfg["data"].get(k))
+    label = cfg.get("train_file", "?").replace("train_", "").replace("_teacher", " + teacher")
+    if cfg.get("prompt_versions"):
+        label += " (" + ",".join(cfg["prompt_versions"]) + ")"
+    if cfg.get("teacher_filter_rank"):
+        label += f", noise filter top-{cfg['teacher_filter_rank']}"
+    if cfg.get("format_aug"):
+        label += f", format aug {cfg['format_aug']:g}"
+    return label
+
+
 def train_runs(prefix: str = "") -> pd.DataFrame:
     """One row per training run: dev (base / best), time, memory. Plus overlay figure per experiment."""
     from rlr.plots import plot_runs_overlay
@@ -129,9 +143,11 @@ def train_runs(prefix: str = "") -> pd.DataFrame:
                 "run": s["name"],
                 "experiment": s["config"].get("experiment", ""),
                 "base_model": s["base_model"].split("/")[-1],
-                "data": "+".join(k for k in ("llm", "titles") if s["config"]["data"].get(k)),
-                "fraction": s["config"]["data"].get("fraction", 1.0),
-                "hard_negatives": s["config"].get("hard_negatives", False),
+                "data": _data_label(s["config"]),
+                "fraction": s["config"].get("data", {}).get("fraction", s["config"].get("fraction", 1.0)),
+                "hard_negatives": s["config"].get("hard_negatives", s["config"].get("negatives") == "teacher"),
+                "loss": s["config"].get("loss", "mnrl"),
+                "epochs": s["config"].get("epochs"),
                 "seed": s["seed"],
                 "train_rows": s["train_rows"],
                 "steps": s["total_steps"],

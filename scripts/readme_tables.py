@@ -93,6 +93,49 @@ def dataset_table() -> str:
     return "\n".join(lines)
 
 
+def v2_stages_table() -> str:
+    """How the v2 recipe was chosen: every stage, every run, dev only."""
+    sel = json.loads((R / "v2_selection.json").read_text(encoding="utf-8"))
+    titles = {
+        "A": "данные и учитель",
+        "B": "аугментация формата фрагментов",
+        "C": "дистилляция FRIDA (2 этап)",
+        "D": "сиды рецепта A+C",
+        "E": "длительность обучения, батч, lr",
+        "F": "дистилляция поверх E",
+    }
+    lines = [
+        "| Этап | Прогон | dev nDCG@10 | dev (наш формат) | dev (формат tk-rf-rag) | Решение |",
+        "|---|---|---:|---:|---:|---|",
+    ]
+    rows = []
+    for st, v in sel["stages"].items():
+        for r in v.get("runs", []) + v.get("seeds", []):
+            b = r["best"]
+            chosen = "выбран" if r["name"] in (v.get("chosen"), sel["final"]["name"]) else ""
+            if st in ("B", "C", "E", "F") and not v.get("kept") and r["name"] != v.get("chosen"):
+                chosen = chosen or "не принят"
+            rows.append(
+                (st, r["name"], b["ndcg@10"], b.get("ndcg@10_view_chunk"), b.get("ndcg@10_view_chunk_tkfmt"), chosen)
+            )
+    for st, name, m, c1, c2, chosen in rows:
+        lines.append(f"| {st}: {titles.get(st, '')} | `{name}` | {m:.4f} | {c1:.4f} | {c2:.4f} | {chosen} |")
+    return "\n".join(lines)
+
+
+def tk_hard_table() -> str:
+    t = pd.read_csv(R / "main_table.csv")
+    t = t[(t["set"] == "tk_hard") & (t["protocol"] == "chunk")].sort_values("ndcg@10", ascending=False)
+    lines = ["| Модель | nDCG@10 [95% ДИ] | Recall@10 | seen | unseen_articles |", "|---|---:|---:|---:|---:|"]
+    for _, r in t.iterrows():
+        name = f"**{r['model']}**" if r["finetuned"] else r["model"]
+        lines.append(
+            f"| {name} | {fmt(r['ndcg@10'])} [{fmt(r['ci_low'])}; {fmt(r['ci_high'])}] | {fmt(r['recall@10'])} "
+            f"| {fmt(r.get('ndcg@10_seen'))} | {fmt(r.get('ndcg@10_unseen_articles'))} |"
+        )
+    return "\n".join(lines)
+
+
 if __name__ == "__main__":
     for title, fn in (
         ("Corpus", dataset_table),
@@ -100,7 +143,10 @@ if __name__ == "__main__":
         ("Protocols", protocol_table),
         ("Golden", golden_table),
         ("Training runs", train_table),
-        ("Bootstrap", bootstrap_table),
+        ("Bootstrap (v1)", bootstrap_table),
+        ("Bootstrap (published v2)", lambda: bootstrap_table("bootstrap_published.csv")),
+        ("TK-hard", tk_hard_table),
+        ("v2 stages", v2_stages_table),
     ):
         try:
             print(f"## {title}\n\n{fn()}\n")
