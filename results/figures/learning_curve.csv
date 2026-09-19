@@ -1,0 +1,5 @@
+run,train_questions,dev_ndcg@10
+base (0 questions),0,0.8161
+e4_small_llm_hn_f25,2285,0.8333
+e4_small_llm_hn_f50,4570,0.8384
+e1_small_llm_hn,9139,0.8501

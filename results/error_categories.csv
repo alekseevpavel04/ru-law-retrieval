@@ -1,0 +1,7 @@
+category,count
+neighbor_same_chapter,12
+same_code_other_chapter,7
+other_code,4
+incomplete_qrels,3
+lexical_mismatch,3
+ambiguous_question,1

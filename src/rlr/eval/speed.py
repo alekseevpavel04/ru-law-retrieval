@@ -43,12 +43,13 @@ def bench(name: str, path: str, qp: str, dp: str, device: str, queries: list[str
     corpus = load_corpus("chunk")
     # index from cache if possible (fp16 GPU encodings are reused for the CPU index too)
     rng = np.random.default_rng(0)
-    dim = model.get_sentence_embedding_dimension()
+    dim = model.get_embedding_dimension()
     index = rng.standard_normal((len(corpus.unit_ids), dim)).astype(np.float32)  # timing only, content irrelevant
     index /= np.linalg.norm(index, axis=1, keepdims=True)
 
     def enc(texts: list[str], bs: int) -> np.ndarray:
-        return model.encode(texts, prompt=qp, batch_size=bs, normalize_embeddings=True, show_progress_bar=False)
+        emb = model.encode(texts, prompt=qp, batch_size=bs, normalize_embeddings=True, show_progress_bar=False)
+        return np.asarray(emb, dtype=np.float32)
 
     enc(queries[:32], 32)  # warm-up
     if device == "cuda":

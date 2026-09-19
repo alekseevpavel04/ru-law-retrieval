@@ -29,7 +29,7 @@ def setup_style() -> None:
             "axes.labelcolor": TEXT_2,
             "axes.titlecolor": TEXT,
             "axes.titlesize": 12,
-            "axes.titleweight": "semibold",
+            "axes.titleweight": "bold",
             "axes.titlelocation": "left",
             "axes.titlepad": 10,
             "axes.labelsize": 10,
@@ -141,22 +141,28 @@ def plot_runs_overlay(summaries: list[dict], path: Path, title: str) -> None:
 
 
 def plot_model_bars(df: pd.DataFrame, path: Path, title: str, highlight: set[str]) -> None:
-    """Horizontal bars: nDCG@10 with 95% CI per model, fine-tuned models highlighted."""
+    """Dot plot: nDCG@10 with 95% bootstrap CI per model (axis does not start at 0, so no bars)."""
     setup_style()
     df = df.sort_values("ndcg@10")
-    fig, ax = plt.subplots(figsize=(9, 0.42 * len(df) + 1.2))
-    colors = [SERIES[1] if m in highlight else SERIES[0] for m in df["model"]]
+    fig, ax = plt.subplots(figsize=(9, 0.4 * len(df) + 1.3))
     y = np.arange(len(df))
-    ax.barh(y, df["ndcg@10"], color=colors, height=0.62)
-    ax.errorbar(df["ndcg@10"], y, xerr=[df["ndcg@10"] - df["ci_low"], df["ci_high"] - df["ndcg@10"]],
-                fmt="none", ecolor=TEXT_2, elinewidth=1, capsize=2)  # fmt: skip
-    for yi, v in zip(y, df["ndcg@10"], strict=True):
-        ax.text(v + 0.012, yi, f"{v:.3f}", va="center", fontsize=8.5, color=TEXT_2)
+    for yi, (_, r) in zip(y, df.iterrows(), strict=True):
+        hl = r["model"] in highlight
+        color = SERIES[1] if hl else SERIES[0]
+        ax.plot([r["ci_low"], r["ci_high"]], [yi, yi], color=color, linewidth=2, alpha=0.45, solid_capstyle="round")
+        ax.scatter([r["ndcg@10"]], [yi], s=70 if hl else 50, color=color, edgecolor=SURFACE, linewidth=2, zorder=3)
+        ax.text(
+            r["ci_high"] + 0.006, yi, f"{r['ndcg@10']:.3f}", va="center", fontsize=8.5, color=TEXT if hl else TEXT_2
+        )
     ax.set_yticks(y, df["model"])
-    ax.set_xlim(max(0.0, df["ci_low"].min() - 0.05), min(1.0, df["ci_high"].max() + 0.06))
+    for lbl in ax.get_yticklabels():
+        if lbl.get_text() in highlight:
+            lbl.set_color(TEXT)
+            lbl.set_fontweight("bold")
+    ax.set_xlim(df["ci_low"].min() - 0.02, df["ci_high"].max() + 0.05)
     ax.grid(axis="x")
     ax.grid(axis="y", visible=False)
-    ax.set_xlabel("nDCG@10 (95% bootstrap CI)")
+    ax.set_xlabel("nDCG@10, point = mean, line = 95% bootstrap CI")
     ax.set_title(title)
     fig.tight_layout()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -165,20 +171,29 @@ def plot_model_bars(df: pd.DataFrame, path: Path, title: str, highlight: set[str
 
 
 def plot_grouped(df: pd.DataFrame, path: Path, title: str, ylabel: str = "nDCG@10") -> None:
-    """Grouped bars: rows = models (series), columns = groups (slices / question types)."""
+    """Slope chart: rows = models (series, fixed colors), columns = groups (slices / types / codes)."""
     setup_style()
     groups = list(df.columns)
-    models = list(df.index)
-    fig, ax = plt.subplots(figsize=(max(8, 2.2 * len(groups)), 4.4))
-    width = 0.8 / len(models)
+    fig, ax = plt.subplots(figsize=(max(7.5, 1.6 * len(groups) + 4), 4.6))
     x = np.arange(len(groups))
-    for i, m in enumerate(models):
-        ax.bar(x + i * width - 0.4 + width / 2, df.loc[m], width=width * 0.92, color=SERIES[i % len(SERIES)], label=m)
+    for i, m in enumerate(df.index):
+        color = SERIES[i % len(SERIES)]
+        ax.plot(
+            x,
+            df.loc[m].to_numpy(dtype=float),
+            color=color,
+            marker="o",
+            markersize=7,
+            linewidth=2,
+            markeredgecolor=SURFACE,
+            markeredgewidth=1.5,
+            label=m,
+        )
     ax.set_xticks(x, groups)
-    ax.set_ylim(max(0, df.min().min() - 0.1), min(1.0, df.max().max() + 0.05))
+    ax.set_xlim(-0.3, len(groups) - 0.7)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
-    ax.legend(ncol=min(3, len(models)), loc="upper right", fontsize=8.5)
+    ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5))
     fig.tight_layout()
     path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path)
