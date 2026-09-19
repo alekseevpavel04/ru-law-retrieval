@@ -22,6 +22,7 @@
 Опубликовано:
 - Датасет: [alekseevpavel04/ru-law-retrieval](https://huggingface.co/datasets/alekseevpavel04/ru-law-retrieval) (формат MTEB).
 - Модель: [alekseevpavel04/multilingual-e5-small-ru-law](https://huggingface.co/alekseevpavel04/multilingual-e5-small-ru-law).
+- Задача для MTEB подготовлена и проверена штатным `mteb.evaluate` (PR ещё не отправлен): [`mteb_task/`](mteb_task/).
 - Все решения и их причины: [`docs/DECISIONS.md`](docs/DECISIONS.md).
 
 ---

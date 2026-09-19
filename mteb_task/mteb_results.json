@@ -1,0 +1,17 @@
+{
+ "mteb/baseline-random-encoder": {
+  "ndcg_at_10": 0.00102,
+  "recall_at_10": 0.00275,
+  "mrr_at_10": 0.0005151098901098901
+ },
+ "intfloat/multilingual-e5-small": {
+  "ndcg_at_10": 0.75641,
+  "recall_at_10": 0.87637,
+  "mrr_at_10": 0.7179672510029653
+ },
+ "alekseevpavel04/multilingual-e5-small-ru-law": {
+  "ndcg_at_10": 0.80518,
+  "recall_at_10": 0.92445,
+  "mrr_at_10": 0.7668225623582765
+ }
+}
