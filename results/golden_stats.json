@@ -1,0 +1,17 @@
+{
+ "items": 180,
+ "annotated": 180,
+ "golden_queries": 174,
+ "question_ok": 161,
+ "question_fix": 15,
+ "gold_not_relevant": 3,
+ "dropped_no_relevant": 2,
+ "question_drop": 4,
+ "share_gold_relevant": 0.983,
+ "share_with_extra_relevant": 0.2102,
+ "mean_extra_relevant": 0.2273,
+ "mean_relevant_per_query": 1.2241,
+ "annotators": {
+  "claude-opus-5 (AI agent)": 180
+ }
+}
