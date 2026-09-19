@@ -142,10 +142,26 @@ def eval_bm25(query_sets: dict[str, list[dict]], cfg: dict, protocols=PROTOCOLS)
     return per_query
 
 
+def tune_hybrid_weight(names: list[str], k: int, protocol: str = "chunk") -> tuple[float, dict]:
+    """Weight of the first run (BM25) in weighted RRF, chosen on dev only (grid, nDCG@10)."""
+    dev = load_query_sets(["dev"])["dev"]
+    runs = []
+    for n in names:
+        saved = load_run(RUNS / n / f"dev_{protocol}.jsonl")
+        runs.append([saved[q["qid"]] for q in dev])
+    grid = {}
+    for w in (0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.7, 1.0):
+        fused = rrf(runs, k=k, weights=[w, 1.0])
+        grid[w] = mean_metrics(score_run(fused, dev))["ndcg@10"]
+    best = max(grid, key=lambda w: (grid[w], -w))  # ties -> smaller BM25 weight
+    return best, grid
+
+
 def eval_hybrid(
-    names: list[str], query_sets: dict[str, list[dict]], k: int, protocols=PROTOCOLS
+    names: list[str], query_sets: dict[str, list[dict]], k: int, protocols=PROTOCOLS, weight: float | None = None
 ) -> tuple[str, list[dict]]:
-    hybrid = "RRF(" + "+".join(names) + ")"
+    hybrid = "RRF(" + "+".join(names) + ")" if weight is None else f"wRRF({names[0]}x{weight:g}+{'+'.join(names[1:])})"
+    weights = None if weight is None else [weight] + [1.0] * (len(names) - 1)
     per_query = []
     for protocol in protocols:
         for qset, queries in query_sets.items():
@@ -153,7 +169,7 @@ def eval_hybrid(
             for n in names:
                 saved = load_run(RUNS / n / f"{qset}_{protocol}.jsonl")
                 runs.append([saved[q["qid"]] for q in queries])
-            run = rrf(runs, k=k)
+            run = rrf(runs, k=k, weights=weights)
             save_run(RUNS / hybrid / f"{qset}_{protocol}.jsonl", [q["qid"] for q in queries], run)
             per_query += [{"set": qset, "protocol": protocol, **r} for r in score_run(run, queries)]
     return hybrid, per_query
@@ -183,6 +199,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--bm25", action="store_true", help="also evaluate BM25")
     parser.add_argument("--no-dense", action="store_true")
     parser.add_argument("--hybrid", nargs="*", help="RRF of saved runs, e.g. BM25 e5-large")
+    parser.add_argument("--tune-weight", action="store_true", help="weighted RRF: BM25 weight tuned on dev")
     # ad-hoc model (fine-tuned checkpoints)
     parser.add_argument("--path")
     parser.add_argument("--name")
@@ -195,9 +212,16 @@ def main(argv: list[str] | None = None) -> None:
     print({k: len(v) for k, v in query_sets.items()}, flush=True)
 
     if args.hybrid:
-        name, per_query = eval_hybrid(args.hybrid, query_sets, cfg["rrf_k"], args.protocols)
+        weight, meta_extra = None, {}
+        if args.tune_weight:
+            weight, grid = tune_hybrid_weight(args.hybrid, cfg["rrf_k"])
+            meta_extra = {"bm25_weight": weight, "dev_grid_ndcg@10": grid, "selected_on": "dev/chunk"}
+            print("dev grid:", {w: round(v, 4) for w, v in grid.items()}, "-> weight", weight)
+        name, per_query = eval_hybrid(args.hybrid, query_sets, cfg["rrf_k"], args.protocols, weight)
         per_query = merge_previous(name, per_query)
-        write_results(name, per_query, {"type": "hybrid", "components": args.hybrid, "rrf_k": cfg["rrf_k"]})
+        write_results(
+            name, per_query, {"type": "hybrid", "components": args.hybrid, "rrf_k": cfg["rrf_k"], **meta_extra}
+        )
         print_table([name])
         return
 
