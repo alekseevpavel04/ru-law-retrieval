@@ -86,6 +86,98 @@
     }
    ],
    "kept": false
+  },
+  "C": {
+   "runs": [
+    {
+     "name": "v2c_distill_t05",
+     "dev": 0.8483099382891899,
+     "best": {
+      "step": 0,
+      "epoch": 0,
+      "ndcg@10": 0.8483099382891899,
+      "recall@5": 0.8986486486486487,
+      "recall@10": 0.9358108108108109,
+      "mrr@10": 0.81999141999142,
+      "ndcg@10_seen": 0.8546822632231388,
+      "ndcg@10_unseen_articles": 0.8291929634873425,
+      "ndcg@10_view_chunk": 0.8523286134537106,
+      "ndcg@10_view_chunk_tkfmt": 0.8442912631246691,
+      "is_best": true,
+      "eval_seconds": 22.2
+     },
+     "model_dir": "models\\v2c_distill_t05\\best"
+    },
+    {
+     "name": "v2c_distill_t02",
+     "dev": 0.850594230173743,
+     "best": {
+      "step": 500,
+      "epoch": 1.0,
+      "ndcg@10": 0.850594230173743,
+      "recall@5": 0.8969594594594594,
+      "recall@10": 0.9391891891891893,
+      "mrr@10": 0.822405888030888,
+      "ndcg@10_seen": 0.8537461942115494,
+      "ndcg@10_unseen_articles": 0.8411383380603243,
+      "ndcg@10_view_chunk": 0.8539991352070915,
+      "ndcg@10_view_chunk_tkfmt": 0.8471893251403946,
+      "is_best": true,
+      "eval_seconds": 22.3
+     },
+     "model_dir": "models\\v2c_distill_t02\\best"
+    }
+   ],
+   "kept": true,
+   "chosen": "v2c_distill_t02"
+  },
+  "D": {
+   "runs": [
+    {
+     "name": "v2c_distill_t02_from_s43",
+     "dev": 0.855970316317229,
+     "best": {
+      "step": 125,
+      "epoch": 0.25,
+      "ndcg@10": 0.855970316317229,
+      "recall@5": 0.8918918918918919,
+      "recall@10": 0.9290540540540541,
+      "mrr@10": 0.8325671653796654,
+      "ndcg@10_seen": 0.8557760668927826,
+      "ndcg@10_unseen_articles": 0.8565530645905681,
+      "ndcg@10_view_chunk": 0.8557623238400888,
+      "ndcg@10_view_chunk_tkfmt": 0.8561783087943692,
+      "is_best": true,
+      "eval_seconds": 24.3
+     },
+     "model_dir": "models\\v2c_distill_t02_from_s43\\best"
+    },
+    {
+     "name": "v2c_distill_t02_from_s44",
+     "dev": 0.8564439221372021,
+     "best": {
+      "step": 125,
+      "epoch": 0.25,
+      "ndcg@10": 0.8564439221372021,
+      "recall@5": 0.8935810810810811,
+      "recall@10": 0.9358108108108107,
+      "mrr@10": 0.8311635296010296,
+      "ndcg@10_seen": 0.860712971062894,
+      "ndcg@10_unseen_articles": 0.8436367753601266,
+      "ndcg@10_view_chunk": 0.8581329576757118,
+      "ndcg@10_view_chunk_tkfmt": 0.8547548865986924,
+      "is_best": true,
+      "eval_seconds": 21.6
+     },
+     "model_dir": "models\\v2c_distill_t02_from_s44\\best"
+    }
+   ]
   }
+ },
+ "final": {
+  "name": "v2c_distill_t02",
+  "dev": 0.850594230173743,
+  "model_dir": "models\\v2c_distill_t02\\best",
+  "recipe": "stage1 + distillation"
  }
 }

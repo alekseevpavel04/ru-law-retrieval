@@ -178,8 +178,8 @@ def report(models: list[str], finetuned: list[str], focus: list[str]) -> None:
     for m in models + finetuned:
         s = load_summary(m)
         pq = per_query(m)
-        for qset in ("test", "golden", "external", "dev"):
-            for protocol in ("chunk", "article"):
+        for qset in ("test", "golden", "external", "dev", "tk_hard"):
+            for protocol in ("chunk", "article", "chunk_tkfmt"):
                 sub = pq[(pq["set"] == qset) & (pq["protocol"] == protocol)]
                 if sub.empty:
                     continue
@@ -205,8 +205,17 @@ def report(models: list[str], finetuned: list[str], focus: list[str]) -> None:
     table = pd.DataFrame(rows)
     table.to_csv(RESULTS / "main_table.csv", index=False, float_format="%.4f")
 
-    for qset, protocol in (("test", "chunk"), ("test", "article"), ("golden", "chunk")):
+    for qset, protocol in (
+        ("test", "chunk"),
+        ("test", "article"),
+        ("golden", "chunk"),
+        ("tk_hard", "chunk"),
+        ("tk_hard", "chunk_tkfmt"),
+        ("test", "chunk_tkfmt"),
+    ):
         sub = table[(table["set"] == qset) & (table["protocol"] == protocol)]
+        if sub.empty:
+            continue
         sub[["model", "ndcg@10", "ci_low", "ci_high"]].to_csv(FIG / f"models_{qset}_{protocol}.csv", index=False)
         plot_model_bars(
             sub, FIG / f"models_{qset}_{protocol}.png", f"{qset} set, {protocol} protocol: nDCG@10", highlight
@@ -266,34 +275,41 @@ def report(models: list[str], finetuned: list[str], focus: list[str]) -> None:
     )
 
 
-def hero(base: str, finetuned: str, refs: list[str]) -> None:
-    """Base -> fine-tuned by slice and question type (test, chunk), with reference models."""
+def hero(base: str, finetuned: str, refs: list[str], v1: str | None = None) -> None:
+    """Base -> (v1) -> fine-tuned on the test set by slice and question type, plus the harder TK set."""
     from rlr.plots import plot_before_after
 
     labels = [
-        ("all", "all test questions (n=728)"),
-        ("slice=seen", "seen articles"),
-        ("slice=unseen_articles", "unseen articles"),
-        ("slice=unseen_codes", "unseen codes (SK, ZoZPP)"),
-        ("qtype=everyday", "everyday questions"),
-        ("qtype=search", "search queries"),
-        ("qtype=legal", "lawyer questions"),
+        ("test", "all", "test: all questions"),
+        ("test", "slice=seen", "test: seen articles"),
+        ("test", "slice=unseen_articles", "test: unseen articles"),
+        ("test", "slice=unseen_codes", "test: unseen codes (SK, ZoZPP)"),
+        ("test", "qtype=everyday", "test: everyday questions"),
+        ("test", "qtype=search", "test: search queries"),
+        ("test", "qtype=legal", "test: lawyer questions"),
+        ("tk_hard", "all", "TK-hard: all"),
+        ("tk_hard", "qtype=everyday", "TK-hard: everyday"),
+        ("tk_hard", "qtype=search", "TK-hard: search"),
     ]
-    res = {m: load_summary(m)["results"]["test/chunk"] for m in [base, finetuned, *refs]}
+    models = [base, finetuned, *refs] + ([v1] if v1 else [])
+    res = {m: load_summary(m)["results"] for m in models}
     rows = []
-    for key, label in labels:
+    for qset, key, label in labels:
+        if f"{qset}/chunk" not in res[finetuned] or key not in res[base].get(f"{qset}/chunk", {}):
+            continue
+        n = res[base][f"{qset}/chunk"][key]["n"]
         row = {
-            "group": label if key == "all" else f"{label} (n={res[base][key]['n']})",
-            "base": res[base][key]["ndcg@10"],
-            "finetuned": res[finetuned][key]["ndcg@10"],
+            "group": f"{label} (n={n})",
+            "base": res[base][f"{qset}/chunk"][key]["ndcg@10"],
+            "finetuned": res[finetuned][f"{qset}/chunk"][key]["ndcg@10"],
         }
-        row.update({r: res[r][key]["ndcg@10"] for r in refs})
+        row.update({r: res[r][f"{qset}/chunk"][key]["ndcg@10"] for r in refs})
+        if v1:
+            row["v1"] = res[v1][f"{qset}/chunk"][key]["ndcg@10"]
         rows.append(row)
     df = pd.DataFrame(rows)
     df.to_csv(FIG / "before_after.csv", index=False, float_format="%.4f")
-    plot_before_after(
-        df, FIG / "before_after.png", "What 3.9 minutes of fine-tuning buys: e5-small (118M) on the test set"
-    )
+    plot_before_after(df, FIG / "before_after.png", "e5-small (118M): base vs fine-tuned", "fine-tuned v2")
     print(df.round(3).to_string(index=False))
 
 
@@ -341,7 +357,10 @@ def main(argv: list[str] | None = None) -> None:
     if args.what == "report":
         report(args.models, args.finetuned, args.focus)
     elif args.what == "hero":
-        hero("e5-small", "ft-e5-small", ["e5-large", "FRIDA"])
+        if (RESULTS / "summary" / "ft2-e5-small.json").exists():
+            hero("e5-small", "ft2-e5-small", ["e5-large", "FRIDA"], v1="ft-e5-small")
+        else:
+            hero("e5-small", "ft-e5-small", ["e5-large", "FRIDA"])
     elif args.what == "learning":
         learning_curve(args.full_run, args.fraction_runs, args.refs)
     if args.what == "lexical":

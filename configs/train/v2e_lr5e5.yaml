@@ -1,0 +1,23 @@
+# v2 grid (scripts/run_v2_grid.py)
+experiment: V2
+base_model: intfloat/multilingual-e5-small
+train_file: train_llm_v12_teacher
+negatives: teacher
+loss: mnrl
+batch_size: 128
+mini_batch_size: 32
+lr: 5.0e-05
+warmup_ratio: 0.1
+epochs: 2
+eval_every: 0.25
+max_seq_length: 208
+seed: 42
+freeze_embeddings: true
+scale: 20.0
+weight_decay: 0.01
+logging_steps: 2
+dev_views:
+- chunk
+- chunk_tkfmt
+name: v2e_lr5e5
+teacher_filter_rank: 50

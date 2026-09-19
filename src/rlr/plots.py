@@ -325,14 +325,15 @@ def plot_learning_curve(df: pd.DataFrame, path: Path, refs: dict[str, float]) ->
     plt.close(fig)
 
 
-def plot_before_after(df: pd.DataFrame, path: Path, title: str) -> None:
-    """Arrows base -> fine-tuned per group, with reference models as ticks.
+def plot_before_after(df: pd.DataFrame, path: Path, title: str, finetuned_label: str = "e5-small fine-tuned") -> None:
+    """Arrows base -> fine-tuned per group (optionally via an intermediate "v1" point), reference models as ticks.
 
-    ``df`` columns: group, base, finetuned, and any number of reference columns (e.g. e5-large, FRIDA).
+    ``df`` columns: group, base, finetuned, optional v1, and reference columns (e.g. e5-large, FRIDA).
     """
     setup_style()
-    refs = [c for c in df.columns if c not in ("group", "base", "finetuned")]
-    fig, ax = plt.subplots(figsize=(10, 0.62 * len(df) + 1.6))
+    refs = [c for c in df.columns if c not in ("group", "base", "finetuned", "v1")]
+    has_v1 = "v1" in df.columns
+    fig, ax = plt.subplots(figsize=(10.5, 0.62 * len(df) + 1.7))
     y = np.arange(len(df))[::-1]
     ref_colors = [SERIES[6], SERIES[3], SERIES[5]]
     for yi, (_, r) in zip(y, df.iterrows(), strict=True):
@@ -343,7 +344,9 @@ def plot_before_after(df: pd.DataFrame, path: Path, title: str) -> None:
             arrowprops={"arrowstyle": "-|>", "color": SERIES[1], "lw": 2.2, "shrinkA": 5, "shrinkB": 5},
         )
         ax.scatter([r["base"]], [yi], s=60, facecolor=SURFACE, edgecolor=SERIES[0], linewidth=2, zorder=4)
-        ax.scatter([r["finetuned"]], [yi], s=70, color=SERIES[1], edgecolor=SURFACE, linewidth=1.5, zorder=5)
+        if has_v1:
+            ax.scatter([r["v1"]], [yi], s=34, color=MUTED, edgecolor=SURFACE, linewidth=1, zorder=4, marker="D")
+        ax.scatter([r["finetuned"]], [yi], s=74, color=SERIES[1], edgecolor=SURFACE, linewidth=1.5, zorder=5)
         for c, col in zip(refs, ref_colors, strict=False):
             ax.plot([r[c], r[c]], [yi - 0.28, yi + 0.28], color=col, linewidth=2.2, solid_capstyle="butt", zorder=3)
         delta = r["finetuned"] - r["base"]
@@ -360,10 +363,9 @@ def plot_before_after(df: pd.DataFrame, path: Path, title: str) -> None:
     ax.set_yticks(y, df["group"])
     ax.grid(axis="x")
     ax.grid(axis="y", visible=False)
-    lo = df[["base", "finetuned", *refs]].min().min()
-    hi = df[["base", "finetuned", *refs]].max().max()
-    ax.set_xlim(lo - 0.02, hi + 0.05)
-    ax.set_xlabel("test nDCG@10 (chunk protocol)")
+    cols = ["base", "finetuned", *refs] + (["v1"] if has_v1 else [])
+    ax.set_xlim(df[cols].min().min() - 0.02, df[cols].max().max() + 0.055)
+    ax.set_xlabel("nDCG@10 (chunk protocol)")
     handles = [
         plt.Line2D(
             [],
@@ -376,10 +378,11 @@ def plot_before_after(df: pd.DataFrame, path: Path, title: str) -> None:
             markersize=8,
             label="e5-small (base)",
         ),
-        plt.Line2D(
-            [], [], marker="o", linestyle="", color=SERIES[1], markersize=8, label="e5-small fine-tuned (3.9 min)"
-        ),
-    ] + [plt.Line2D([], [], color=col, linewidth=2.2, label=c) for c, col in zip(refs, ref_colors, strict=False)]
+    ]
+    if has_v1:
+        handles.append(plt.Line2D([], [], marker="D", linestyle="", color=MUTED, markersize=6, label="fine-tuned v1"))
+    handles.append(plt.Line2D([], [], marker="o", linestyle="", color=SERIES[1], markersize=8, label=finetuned_label))
+    handles += [plt.Line2D([], [], color=col, linewidth=2.2, label=c) for c, col in zip(refs, ref_colors, strict=False)]
     ax.legend(handles=handles, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=len(handles), frameon=False)
     ax.set_title(title, pad=34)
     fig.tight_layout()
