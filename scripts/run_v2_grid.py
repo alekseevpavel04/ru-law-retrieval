@@ -54,7 +54,7 @@ def run(cfg: dict, seed: int | None = None) -> dict:
     )
     cmd = [PY, "-m", "rlr", "train", str(path)] + (["--seed", str(seed)] if seed else [])
     print(">>", " ".join(cmd[3:]), flush=True)
-    subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True, cwd=ROOT)
     name = cfg["name"] + (f"_s{seed}" if seed and seed != cfg["seed"] else "")
     summary = json.loads((RESULTS / "train" / f"{name}.json").read_text(encoding="utf-8"))
     best = summary["dev_best"]
@@ -64,7 +64,8 @@ def run(cfg: dict, seed: int | None = None) -> dict:
         + ")",
         flush=True,
     )
-    return {"name": name, "dev": best["ndcg@10"], "best": best, "model_dir": summary["best_model_dir"]}
+    # absolute path, so later stages work from any working directory
+    return {"name": name, "dev": best["ndcg@10"], "best": best, "model_dir": str(ROOT / summary["best_model_dir"])}
 
 
 def main() -> None:

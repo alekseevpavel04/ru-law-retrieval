@@ -9,7 +9,7 @@ import copy
 import json
 
 import yaml
-from run_v2_grid import CFG_DIR, RESULTS, run
+from run_v2_grid import CFG_DIR, RESULTS, ROOT, run
 
 
 def main() -> None:
@@ -21,6 +21,8 @@ def main() -> None:
         return
     c_cfg = yaml.safe_load((CFG_DIR / f"{sel['stages']['C']['chosen']}.yaml").read_text(encoding="utf-8"))
     base = next(r for r in e["runs"] if r["name"] == e["chosen"])
+    for r in [base, *e["seeds"]]:  # older entries stored paths relative to the project root
+        r["model_dir"] = str(ROOT / r["model_dir"])  # joining an absolute path keeps it as is
     starts = [(base, 42)] + [(s, seed) for s, seed in zip(e["seeds"], (43, 44), strict=True)]
     res = []
     for start, seed in starts:
