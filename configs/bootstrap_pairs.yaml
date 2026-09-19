@@ -1,0 +1,15 @@
+# Paired bootstrap comparisons (fixed before looking at test results).
+# Best baseline = FRIDA (highest dev nDCG@10, chunk protocol, results/summary/FRIDA.json).
+pairs:
+  - {a: ft-e5-small, b: e5-small, set: test, protocol: chunk}
+  - {a: ft-e5-small, b: FRIDA, set: test, protocol: chunk}
+  - {a: ft-e5-small, b: e5-large, set: test, protocol: chunk}
+  - {a: ft-e5-base, b: e5-base, set: test, protocol: chunk}
+  - {a: ft-e5-base, b: FRIDA, set: test, protocol: chunk}
+  - {a: ft-e5-small, b: e5-small, set: test, protocol: article}
+  - {a: ft-e5-small, b: FRIDA, set: test, protocol: article}
+  - {a: ft-e5-small, b: e5-small, set: golden, protocol: chunk}
+  - {a: ft-e5-small, b: FRIDA, set: golden, protocol: chunk}
+  - {a: "RRF(BM25+ft-e5-small)", b: ft-e5-small, set: test, protocol: chunk}
+  - {a: "RRF(BM25+FRIDA)", b: FRIDA, set: test, protocol: chunk}
+  - {a: "RRF(BM25+ft-e5-small)", b: FRIDA, set: test, protocol: chunk}

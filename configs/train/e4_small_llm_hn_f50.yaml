@@ -1,0 +1,23 @@
+# E4: learning curve, best E1 config with a fraction of LLM questions
+name: e4_small_llm_hn_f50
+experiment: E4
+base_model: intfloat/multilingual-e5-small
+mining_name: e5-small
+batch_size: 128
+mini_batch_size: 32
+lr: 3.0e-05
+warmup_ratio: 0.1
+epochs: 2
+eval_every: 0.25
+max_seq_length: 208
+seed: 42
+freeze_embeddings: true
+scale: 20.0
+weight_decay: 0.01
+logging_steps: 2
+data:
+  llm: true
+  titles: false
+  fraction: 0.5
+  fraction_seed: 0
+hard_negatives: true

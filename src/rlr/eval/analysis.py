@@ -12,6 +12,7 @@ import argparse
 import json
 from collections import defaultdict
 
+import numpy as np
 import pandas as pd
 
 from rlr.data.parse import CORPUS, read_jsonl
@@ -113,6 +114,8 @@ def train_runs(prefix: str = "") -> pd.DataFrame:
     for p in sorted((RESULTS / "train").glob("*.json")):
         s = json.loads(p.read_text(encoding="utf-8"))
         if s["name"].startswith(prefix):
+            if s["name"].endswith(("_s43", "_s44")):  # seed repeats of the chosen configs
+                s["config"]["experiment"] = "E3"
             summaries.append(s)
     rows = []
     for s in summaries:
@@ -150,10 +153,113 @@ def train_runs(prefix: str = "") -> pd.DataFrame:
     return df
 
 
+def mean_ci(values: np.ndarray, n: int = 10_000, seed: int = 0) -> tuple[float, float]:
+    rng = np.random.default_rng(seed)
+    means = values[rng.integers(0, len(values), size=(n, len(values)))].mean(axis=1)
+    lo, hi = np.quantile(means, [0.025, 0.975])
+    return float(lo), float(hi)
+
+
+def per_query(name: str) -> pd.DataFrame:
+    return pd.read_csv(RESULTS / "per_query" / f"{name}.csv")
+
+
+def report(models: list[str], finetuned: list[str], focus: list[str]) -> None:
+    """Main tables and figures. ``focus`` = short list of models for slice / type charts."""
+    from rlr.plots import plot_grouped, plot_model_bars, plot_scatter
+
+    FIG.mkdir(parents=True, exist_ok=True)
+    highlight = set(finetuned)
+    rows = []
+    for m in models + finetuned:
+        s = load_summary(m)
+        pq = per_query(m)
+        for qset in ("test", "golden", "external", "dev"):
+            for protocol in ("chunk", "article"):
+                sub = pq[(pq["set"] == qset) & (pq["protocol"] == protocol)]
+                if sub.empty:
+                    continue
+                lo, hi = mean_ci(sub["ndcg@10"].to_numpy())
+                row = {"model": m, "set": qset, "protocol": protocol, "n": len(sub), "ci_low": lo, "ci_high": hi,
+                       "params_m": round((s.get("params") or 0) / 1e6, 1), "finetuned": m in highlight}  # fmt: skip
+                for metric in ("ndcg@10", "recall@5", "recall@10", "mrr@10"):
+                    row[metric] = sub[metric].mean()
+                for sl in ("seen", "unseen_articles", "unseen_codes"):
+                    ss = sub[sub["slice"] == sl]
+                    if not ss.empty:
+                        row[f"ndcg@10_{sl}"] = ss["ndcg@10"].mean()
+                        row[f"recall@10_{sl}"] = ss["recall@10"].mean()
+                rows.append(row)
+    table = pd.DataFrame(rows)
+    table.to_csv(RESULTS / "main_table.csv", index=False, float_format="%.4f")
+
+    for qset, protocol in (("test", "chunk"), ("test", "article"), ("golden", "chunk")):
+        sub = table[(table["set"] == qset) & (table["protocol"] == protocol)]
+        sub[["model", "ndcg@10", "ci_low", "ci_high"]].to_csv(FIG / f"models_{qset}_{protocol}.csv", index=False)
+        plot_model_bars(sub, FIG / f"models_{qset}_{protocol}.png",
+                        f"{qset} set, {protocol} protocol: nDCG@10", highlight)  # fmt: skip
+
+    for key, fname, title in (("slice", "slices", "Test nDCG@10 by slice (chunk)"),
+                              ("qtype", "qtypes", "Test nDCG@10 by question type (chunk)"),
+                              ("code", "codes", "Test nDCG@10 by code (chunk)")):  # fmt: skip
+        df = breakdown(focus, key)
+        order = {"slice": ["seen", "unseen_articles", "unseen_codes"], "qtype": ["everyday", "search", "legal"]}
+        if key in order:
+            df = df[order[key]]
+        df.to_csv(FIG / f"{fname}.csv", float_format="%.4f")
+        plot_grouped(df, FIG / f"{fname}.png", title)
+
+    speed_path = RESULTS / "speed.json"
+    if speed_path.exists():
+        sp = pd.DataFrame(json.loads(speed_path.read_text(encoding="utf-8")))
+        test_chunk = table[(table["set"] == "test") & (table["protocol"] == "chunk")].set_index("model")["ndcg@10"]
+        for device in sp["device"].unique():
+            d = sp[sp["device"] == device].copy()
+            d["ndcg@10"] = d["model"].map(test_chunk)
+            d = d.dropna(subset=["ndcg@10"])
+            d.to_csv(FIG / f"quality_vs_latency_{device}.csv", index=False)
+            plot_scatter(d, "latency_ms_p50", "ndcg@10", FIG / f"quality_vs_latency_{device}.png",
+                         f"Quality vs latency ({device})", "latency p50, ms", highlight)  # fmt: skip
+        d = sp[sp["device"] == sp["device"].iloc[0]].copy()
+        d["ndcg@10"] = d["model"].map(test_chunk)
+        d = d.dropna(subset=["ndcg@10"])
+        plot_scatter(d, "params_m", "ndcg@10", FIG / "quality_vs_size.png", "Quality vs model size",
+                     "parameters, M", highlight)  # fmt: skip
+    print(table[(table["set"] == "test") & (table["protocol"] == "chunk")]
+          .sort_values("ndcg@10", ascending=False)[["model", "ndcg@10", "ci_low", "ci_high", "ndcg@10_seen",
+          "ndcg@10_unseen_articles", "ndcg@10_unseen_codes"]].to_string(index=False))  # fmt: skip
+
+
+def learning_curve(full_run: str, fraction_runs: list[str], refs: list[str]) -> None:
+    from rlr.plots import plot_learning_curve
+
+    rows = []
+    for name in [*fraction_runs, full_run]:
+        s = json.loads((RESULTS / "train" / f"{name}.json").read_text(encoding="utf-8"))
+        rows.append({"run": name, "train_questions": s["data"].get("llm", 0), "dev_ndcg@10": s["dev_best"]["ndcg@10"]})
+    base = json.loads((RESULTS / "train" / f"{full_run}.json").read_text(encoding="utf-8"))["dev_base"]["ndcg@10"]
+    rows.insert(0, {"run": "base (0 questions)", "train_questions": 0, "dev_ndcg@10": base})
+    df = pd.DataFrame(rows).sort_values("train_questions")
+    df.to_csv(FIG / "learning_curve.csv", index=False, float_format="%.4f")
+    ref_vals = {r: load_summary(r)["results"]["dev/chunk"]["all"]["ndcg@10"] for r in refs}
+    plot_learning_curve(df, FIG / "learning_curve.png", ref_vals)
+    print(df.to_string(index=False))
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="rlr analysis")
-    parser.add_argument("what", choices=["lexical", "train"])
+    parser.add_argument("what", choices=["lexical", "train", "report", "learning"])
+    parser.add_argument("--models", nargs="*", default=[])
+    parser.add_argument("--finetuned", nargs="*", default=[])
+    parser.add_argument("--focus", nargs="*", default=[])
+    parser.add_argument("--full-run")
+    parser.add_argument("--fraction-runs", nargs="*", default=[])
+    parser.add_argument("--refs", nargs="*", default=[])
     args = parser.parse_args(argv)
+    if args.what == "report":
+        report(args.models, args.finetuned, args.focus)
+    elif args.what == "learning":
+        learning_curve(args.full_run, args.fraction_runs, args.refs)
     if args.what == "lexical":
         print(lexical_overlap().to_string(index=False))
     elif args.what == "train":

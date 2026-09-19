@@ -1,0 +1,21 @@
+# E2: e5-base on the 2 best E1 configurations (by dev)
+name: e2_base_both_hn
+experiment: E2
+base_model: intfloat/multilingual-e5-base
+mining_name: e5-base
+batch_size: 128
+mini_batch_size: 16
+lr: 2.0e-05
+warmup_ratio: 0.1
+epochs: 2
+eval_every: 0.25
+max_seq_length: 208
+seed: 42
+freeze_embeddings: true
+scale: 20.0
+weight_decay: 0.01
+logging_steps: 2
+data:
+  llm: true
+  titles: true
+hard_negatives: true

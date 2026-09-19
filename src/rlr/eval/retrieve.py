@@ -111,7 +111,8 @@ class DenseEncoder:
             # sentence-transformers 6 cannot load old configs where Normalize has path "" (e.g. deepvk/USER-base):
             # it reads the model config.json as the Normalize config. Build the same pipeline by hand.
             self.model = build_from_modules(path, self.device, torch_dtype)
-        self.model.max_seq_length = min(max_seq_length, self.model.max_seq_length or max_seq_length)
+        # the same truncation for every model (fine-tuned checkpoints are saved with the training length 208)
+        self.model.max_seq_length = max_seq_length
         if padding_side:
             self.model.tokenizer.padding_side = padding_side
 

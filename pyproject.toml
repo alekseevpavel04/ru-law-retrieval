@@ -29,3 +29,6 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 markers = ["slow: needs model downloads or GPU"]
 addopts = "-m 'not slow'"
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["E501"]

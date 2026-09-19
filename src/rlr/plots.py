@@ -138,3 +138,89 @@ def plot_runs_overlay(summaries: list[dict], path: Path, title: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path)
     plt.close(fig)
+
+
+def plot_model_bars(df: pd.DataFrame, path: Path, title: str, highlight: set[str]) -> None:
+    """Horizontal bars: nDCG@10 with 95% CI per model, fine-tuned models highlighted."""
+    setup_style()
+    df = df.sort_values("ndcg@10")
+    fig, ax = plt.subplots(figsize=(9, 0.42 * len(df) + 1.2))
+    colors = [SERIES[1] if m in highlight else SERIES[0] for m in df["model"]]
+    y = np.arange(len(df))
+    ax.barh(y, df["ndcg@10"], color=colors, height=0.62)
+    ax.errorbar(df["ndcg@10"], y, xerr=[df["ndcg@10"] - df["ci_low"], df["ci_high"] - df["ndcg@10"]],
+                fmt="none", ecolor=TEXT_2, elinewidth=1, capsize=2)  # fmt: skip
+    for yi, v in zip(y, df["ndcg@10"], strict=True):
+        ax.text(v + 0.012, yi, f"{v:.3f}", va="center", fontsize=8.5, color=TEXT_2)
+    ax.set_yticks(y, df["model"])
+    ax.set_xlim(max(0.0, df["ci_low"].min() - 0.05), min(1.0, df["ci_high"].max() + 0.06))
+    ax.grid(axis="x")
+    ax.grid(axis="y", visible=False)
+    ax.set_xlabel("nDCG@10 (95% bootstrap CI)")
+    ax.set_title(title)
+    fig.tight_layout()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path)
+    plt.close(fig)
+
+
+def plot_grouped(df: pd.DataFrame, path: Path, title: str, ylabel: str = "nDCG@10") -> None:
+    """Grouped bars: rows = models (series), columns = groups (slices / question types)."""
+    setup_style()
+    groups = list(df.columns)
+    models = list(df.index)
+    fig, ax = plt.subplots(figsize=(max(8, 2.2 * len(groups)), 4.4))
+    width = 0.8 / len(models)
+    x = np.arange(len(groups))
+    for i, m in enumerate(models):
+        ax.bar(x + i * width - 0.4 + width / 2, df.loc[m], width=width * 0.92, color=SERIES[i % len(SERIES)], label=m)
+    ax.set_xticks(x, groups)
+    ax.set_ylim(max(0, df.min().min() - 0.1), min(1.0, df.max().max() + 0.05))
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    ax.legend(ncol=min(3, len(models)), loc="upper right", fontsize=8.5)
+    fig.tight_layout()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path)
+    plt.close(fig)
+
+
+def plot_scatter(df: pd.DataFrame, x: str, y: str, path: Path, title: str, xlabel: str, highlight: set[str],
+                 logx: bool = True) -> None:  # fmt: skip
+    setup_style()
+    fig, ax = plt.subplots(figsize=(8.5, 5))
+    ax.grid(axis="x")
+    for _, r in df.iterrows():
+        hl = r["model"] in highlight
+        ax.scatter(r[x], r[y], s=90 if hl else 60, color=SERIES[1] if hl else SERIES[0], edgecolor=SURFACE,
+                   linewidth=2, zorder=3)  # fmt: skip
+        ax.annotate(r["model"], (r[x], r[y]), textcoords="offset points", xytext=(7, 4), fontsize=8.5,
+                    color=TEXT if hl else TEXT_2)  # fmt: skip
+    if logx:
+        ax.set_xscale("log")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("test nDCG@10 (chunk)")
+    ax.set_title(title)
+    fig.tight_layout()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path)
+    plt.close(fig)
+
+
+def plot_learning_curve(df: pd.DataFrame, path: Path, refs: dict[str, float]) -> None:
+    setup_style()
+    fig, ax = plt.subplots(figsize=(7.5, 4.4))
+    ax.plot(
+        df["train_questions"], df["dev_ndcg@10"], color=SERIES[1], marker="o", markersize=7, label="e5-small fine-tuned"
+    )
+    for (name, v), c in zip(refs.items(), [MUTED, SERIES[0], SERIES[6]], strict=False):
+        ax.axhline(v, color=c, linewidth=1.2, linestyle="--")
+        ax.annotate(name, (df["train_questions"].min(), v), textcoords="offset points", xytext=(0, 4), fontsize=8.5,
+                    color=c)  # fmt: skip
+    ax.set_xlabel("LLM training questions")
+    ax.set_ylabel("dev nDCG@10 (best checkpoint)")
+    ax.set_title("Learning curve (E4)")
+    fig.tight_layout()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path)
+    plt.close(fig)
