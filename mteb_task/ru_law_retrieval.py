@@ -1,8 +1,3 @@
-"""MTEB task definition for RuLawRetrieval (prepared for a PR to embeddings-benchmark/mteb).
-
-Place into mteb/tasks/retrieval/rus/ and import it in that package's __init__.py.
-"""
-
 from mteb.abstasks.retrieval import AbsTaskRetrieval
 from mteb.abstasks.task_metadata import TaskMetadata
 
@@ -44,5 +39,7 @@ class RuLawRetrieval(AbsTaskRetrieval):
   year = {2026},
 }
 """,
-        prompt={"query": "Given a question about Russian law, retrieve the article of law that answers it"},
+        prompt={
+            "query": "Given a question about Russian law, retrieve the article of law that answers it"
+        },
     )

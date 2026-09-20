@@ -1,6 +1,6 @@
 # Задача RuLawRetrieval для MTEB
 
-Статус: **задача готова и проверена локально, PR в MTEB не отправлен** — публикация в чужом репозитории и дальнейшая переписка с ревьюерами остаются за автором.
+Статус: **PR отправлен** — [embeddings-benchmark/mteb#5496](https://github.com/embeddings-benchmark/mteb/pull/5496), ветка `add-ru-law-retrieval` форка, перебазирована на их `main`.
 
 - `ru_law_retrieval.py`: класс задачи `RuLawRetrieval` для `mteb/tasks/retrieval/rus/`.
 - `descriptive_stats.json`: описательная статистика из `task.calculate_descriptive_statistics()`. Дублей нет, минимальная длина документа 136 символов.
@@ -18,13 +18,13 @@
 - вопросы синтетические (у MTEB такие задачи есть, в метаданных это указано через `LM-generated and verified`);
 - смешанная лицензия (`multiple`): тексты законов не охраняются авторским правом, вопросы dev/test сгенерированы моделью со своей лицензией, код — MIT.
 
-Как отправить (после форка, одна команда):
+Как это отправлялось (если понадобится повторить для обновления задачи):
 
 ```bash
-cd <клон mteb>                     # ветка add-ru-law-retrieval уже с коммитом из 0001-*.patch
-gh repo fork embeddings-benchmark/mteb --remote --remote-name fork
+cd <клон mteb>                     # ветка add-ru-law-retrieval, перебазированная на origin/main
+ruff format mteb/tasks/retrieval/rus/ru_law_retrieval.py   # их стиль форматирования
+pytest tests/test_tasks/test_metadata.py -o addopts=""     # 1973 passed
+gh repo fork embeddings-benchmark/mteb
 git push fork add-ru-law-retrieval
-gh pr create --repo embeddings-benchmark/mteb --head alekseevpavel04:add-ru-law-retrieval \
-  --title "Add RuLawRetrieval (Russian legal article retrieval)" \
-  --body-file ../ru-law-retrieval/mteb_task/PR_DESCRIPTION.md
+gh pr create --repo embeddings-benchmark/mteb --base main --head alekseevpavel04:add-ru-law-retrieval   --title "Add RuLawRetrieval (Russian legal article retrieval)"   --body-file ../ru-law-retrieval/mteb_task/PR_DESCRIPTION.md
 ```
