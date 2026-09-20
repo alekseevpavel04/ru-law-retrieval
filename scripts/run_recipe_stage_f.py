@@ -2,7 +2,7 @@
 
 Kept only if it improves dev over the stage-E winner. Appended to results/recipe_selection.json under "F".
 
-Usage: cd scripts && python run_recipe_stage_f.py
+Usage: python scripts/run_recipe_stage_f.py
 """
 
 import copy

@@ -4,7 +4,9 @@ sentence-transformers 6 saves modules with new class paths that older versions (
 cannot load. The base model repo layout is copied and only the weights are replaced; prompts and
 max_seq_length=512 are set. Embeddings of the exported model are checked against the checkpoint.
 
-Usage: python scripts/export_model.py models/e1_small_llm_hn/best data/export/hf_model intfloat/multilingual-e5-small
+Usage (the published checkpoint):
+  python scripts/export_model.py models/v2f_distill_from_v2e_ep3_s43/best data/export/hf_model \
+      intfloat/multilingual-e5-small
 """
 
 import json

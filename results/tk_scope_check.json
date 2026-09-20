@@ -11,13 +11,13 @@
   "recall@10": 0.9865,
   "mrr@10": 0.8135
  },
- "ft-e5-small/full corpus": {
+ "abl-e1_small_llm_hn/full corpus": {
   "ndcg@10": 0.8557,
   "recall@5": 0.9595,
   "recall@10": 0.9595,
   "mrr@10": 0.8203
  },
- "ft-e5-small/TK only": {
+ "abl-e1_small_llm_hn/TK only": {
   "ndcg@10": 0.8607,
   "recall@5": 0.9595,
   "recall@10": 0.973,

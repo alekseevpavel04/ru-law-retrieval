@@ -13,6 +13,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
       # requirements.txt pins the CUDA build of torch that produced the published numbers; the fast
       # tests (parsing, chunking, filters, splits, metrics, retrieval, bootstrap) run on CPU wheels.
       - run: pip install torch --index-url https://download.pytorch.org/whl/cpu

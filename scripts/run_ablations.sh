@@ -8,10 +8,15 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 export PYTHONIOENCODING=utf-8
 PY=.venv/Scripts/python.exe
+mkdir -p logs
 
-train() {
+train() {  # full output to a log, only the dev numbers on screen, a failure is loud
+  local log="logs/train_$1${2:+_s$2}.log"
   echo "=== $1 ${2:+seed $2} $(date +%H:%M:%S)"
-  $PY -m rlr train "configs/train/$1.yaml" ${2:+--seed "$2"} 2>&1 | grep -E "dev base|dev best|Traceback|Error"
+  if ! $PY -m rlr train "configs/train/$1.yaml" ${2:+--seed "$2"} > "$log" 2>&1; then
+    echo "FAILED: $1 ${2:+seed $2}, see $log"; return 1
+  fi
+  grep -E "dev base|dev best" "$log" || true
 }
 for cfg in e1_small_titles_inb e1_small_titles_hn e1_small_llm_inb e1_small_llm_hn \
            e1_small_both_inb e1_small_both_hn e2_base_llm_hn e2_base_both_hn \
