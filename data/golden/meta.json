@@ -1,0 +1,20 @@
+{
+ "n": 180,
+ "seed": 42,
+ "pool": [
+  "BM25",
+  "FRIDA"
+ ],
+ "candidates": 5,
+ "by_slice_type": {
+  "seen/everyday": 20,
+  "seen/legal": 20,
+  "seen/search": 20,
+  "unseen_articles/everyday": 20,
+  "unseen_articles/legal": 20,
+  "unseen_articles/search": 20,
+  "unseen_codes/everyday": 20,
+  "unseen_codes/legal": 20,
+  "unseen_codes/search": 20
+ }
+}
