@@ -201,7 +201,9 @@ def plot_model_bars(df: pd.DataFrame, path: Path, title: str, highlight: set[str
     plt.close(fig)
 
 
-def plot_grouped(df: pd.DataFrame, path: Path, title: str, ylabel: str = "nDCG@10") -> None:
+def plot_grouped(
+    df: pd.DataFrame, path: Path, title: str, ylabel: str = "nDCG@10", highlight: set[str] | None = None
+) -> None:
     """Slope chart: rows = models (series, fixed colors), columns = groups (slices / types / codes)."""
     setup_style()
     groups = list(df.columns)
@@ -209,16 +211,18 @@ def plot_grouped(df: pd.DataFrame, path: Path, title: str, ylabel: str = "nDCG@1
     x = np.arange(len(groups))
     for i, m in enumerate(df.index):
         color = SERIES[i % len(SERIES)]
+        hl = m in (highlight or set())
         ax.plot(
             x,
             df.loc[m].to_numpy(dtype=float),
             color=color,
             marker="o",
-            markersize=7,
-            linewidth=2,
+            markersize=9 if hl else 7,
+            linewidth=3.2 if hl else 1.8,
             markeredgecolor=SURFACE,
             markeredgewidth=1.5,
-            label=m,
+            zorder=4 if hl else 3,
+            label=f"{m}  ←" if hl else m,
         )
     ax.set_xticks(x, groups)
     ax.set_xlim(-0.3, len(groups) - 0.7)
@@ -249,14 +253,26 @@ def plot_scatter(
     ax.grid(axis="x")
     pos = {r["model"]: (r[x], r[y]) for _, r in df.iterrows()}
     for a, b in arrows or []:
-        if a in pos and b in pos:
+        if a not in pos or b not in pos:
+            print(f"plot_scatter: no arrow {a} -> {b}, one of the models is missing from the table")
+        else:
             ax.annotate(
                 "",
                 xy=pos[b],
                 xytext=pos[a],
                 arrowprops={"arrowstyle": "-|>", "color": SERIES[1], "lw": 1.8, "shrinkA": 7, "shrinkB": 7},
             )
-    for _, r in df.iterrows():
+    # Labels sit to the upper right of their point. When two points are close, the left one is
+    # labelled to its left instead, so a label never lands on the neighbouring marker.
+    span_x, span_y = df[x].max() - df[x].min(), df[y].max() - df[y].min()
+    rows = list(df.sort_values(x).iterrows())
+    close = [
+        i + 1 < len(rows)
+        and abs(rows[i + 1][1][x] - r[x]) < 0.25 * span_x
+        and abs(rows[i + 1][1][y] - r[y]) < 0.09 * span_y
+        for i, (_, r) in enumerate(rows)
+    ]
+    for i, (_, r) in enumerate(rows):
         hl = r["model"] in highlight
         ax.scatter(
             r[x],
@@ -271,7 +287,8 @@ def plot_scatter(
             r["model"],
             (r[x], r[y]),
             textcoords="offset points",
-            xytext=(8, 5),
+            xytext=(-9, 5) if close[i] else (8, 5),
+            ha="right" if close[i] else "left",
             fontsize=9,
             color=TEXT if hl else TEXT_2,
             fontweight="bold" if hl else "normal",
@@ -332,16 +349,16 @@ def plot_learning_curve(df: pd.DataFrame, path: Path, refs: dict[str, float]) ->
 
 
 def plot_before_after(df: pd.DataFrame, path: Path, title: str, finetuned_label: str = "e5-small fine-tuned") -> None:
-    """Arrows base -> fine-tuned per group (optionally via an intermediate "v1" point), reference models as ticks.
+    """Arrows base -> fine-tuned per group, reference models as ticks.
 
-    ``df`` columns: group, base, finetuned, optional v1, and reference columns (e.g. e5-large, FRIDA).
+    ``df`` columns: group, base, finetuned, and reference columns (e.g. e5-large, FRIDA).
     """
     setup_style()
-    refs = [c for c in df.columns if c not in ("group", "base", "finetuned", "v1")]
-    has_v1 = "v1" in df.columns
+    refs = [c for c in df.columns if c not in ("group", "base", "finetuned")]
     fig, ax = plt.subplots(figsize=(10.5, 0.62 * len(df) + 1.7))
     y = np.arange(len(df))[::-1]
     ref_colors = [SERIES[6], SERIES[3], SERIES[5]]
+    label_x = df[["base", "finetuned", *refs]].to_numpy(dtype=float).max() + 0.012  # one column for all deltas
     for yi, (_, r) in zip(y, df.iterrows(), strict=True):
         ax.annotate(
             "",
@@ -350,15 +367,12 @@ def plot_before_after(df: pd.DataFrame, path: Path, title: str, finetuned_label:
             arrowprops={"arrowstyle": "-|>", "color": SERIES[1], "lw": 2.2, "shrinkA": 5, "shrinkB": 5},
         )
         ax.scatter([r["base"]], [yi], s=60, facecolor=SURFACE, edgecolor=SERIES[0], linewidth=2, zorder=4)
-        if has_v1:
-            ax.scatter([r["v1"]], [yi], s=34, color=MUTED, edgecolor=SURFACE, linewidth=1, zorder=4, marker="D")
         ax.scatter([r["finetuned"]], [yi], s=74, color=SERIES[1], edgecolor=SURFACE, linewidth=1.5, zorder=5)
         for c, col in zip(refs, ref_colors, strict=False):
             ax.plot([r[c], r[c]], [yi - 0.28, yi + 0.28], color=col, linewidth=2.2, solid_capstyle="butt", zorder=3)
         delta = r["finetuned"] - r["base"]
-        right = max([r["finetuned"], r["base"], *[r[c] for c in refs]])
         ax.text(
-            right + 0.008,
+            label_x,
             yi,
             f"{delta:+.3f}".replace("-0.000", "0.000"),
             va="center",
@@ -369,7 +383,7 @@ def plot_before_after(df: pd.DataFrame, path: Path, title: str, finetuned_label:
     ax.set_yticks(y, df["group"])
     ax.grid(axis="x")
     ax.grid(axis="y", visible=False)
-    cols = ["base", "finetuned", *refs] + (["v1"] if has_v1 else [])
+    cols = ["base", "finetuned", *refs]
     ax.set_xlim(df[cols].min().min() - 0.02, df[cols].max().max() + 0.055)
     ax.set_xlabel("nDCG@10 (chunk protocol)")
     handles = [
@@ -385,8 +399,6 @@ def plot_before_after(df: pd.DataFrame, path: Path, title: str, finetuned_label:
             label="e5-small (base)",
         ),
     ]
-    if has_v1:
-        handles.append(plt.Line2D([], [], marker="D", linestyle="", color=MUTED, markersize=6, label="fine-tuned v1"))
     handles.append(plt.Line2D([], [], marker="o", linestyle="", color=SERIES[1], markersize=8, label=finetuned_label))
     handles += [plt.Line2D([], [], color=col, linewidth=2.2, label=c) for c, col in zip(refs, ref_colors, strict=False)]
     ax.legend(handles=handles, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=len(handles), frameon=False)

@@ -1,0 +1,14 @@
+{
+ "seed": 42,
+ "held_out_frac": 0.1,
+ "min_chars_eval": 150,
+ "held_out_articles": 356,
+ "train_articles": 3207,
+ "eval_articles": {
+  "dev/seen": 225,
+  "dev/unseen_articles": 75,
+  "test/seen": 300,
+  "test/unseen_articles": 220,
+  "test/unseen_codes": 219
+ }
+}

@@ -21,6 +21,7 @@ from rlr.eval.retrieve import TOKEN_RE
 
 DATASET = DATA / "dataset"
 FIG = RESULTS / "figures"
+PUBLISHED = "e5-small-ru-law"  # the fine-tuned checkpoint that is published on the Hub
 
 
 def stem_set(text: str, stemmer) -> set[str]:
@@ -251,7 +252,7 @@ def report(models: list[str], finetuned: list[str], focus: list[str]) -> None:
         if key in order:
             df = df[order[key]]
         df.to_csv(FIG / f"{fname}.csv", float_format="%.4f")
-        plot_grouped(df, FIG / f"{fname}.png", title)
+        plot_grouped(df, FIG / f"{fname}.png", title, highlight=highlight)
 
     speed_path = RESULTS / "speed.json"
     if speed_path.exists():
@@ -271,7 +272,7 @@ def report(models: list[str], finetuned: list[str], focus: list[str]) -> None:
                 f"Quality vs latency of one query ({hw})",
                 "latency p50, ms (encode + search), log scale",
                 highlight,
-                arrows=[("e5-small", "ft-e5-small")],
+                arrows=[("e5-small", PUBLISHED)],
             )
         d = sp[sp["device"] == sp["device"].iloc[0]].copy()
         d["ndcg@10"] = d["model"].map(test_chunk)
@@ -284,7 +285,7 @@ def report(models: list[str], finetuned: list[str], focus: list[str]) -> None:
             "Quality vs model size",
             "parameters, M, log scale",
             highlight,
-            arrows=[("e5-small", "ft-e5-small")],
+            arrows=[("e5-small", PUBLISHED)],
         )
     print(
         table[(table["set"] == "test") & (table["protocol"] == "chunk")]
@@ -295,8 +296,8 @@ def report(models: list[str], finetuned: list[str], focus: list[str]) -> None:
     )
 
 
-def hero(base: str, finetuned: str, refs: list[str], v1: str | None = None) -> None:
-    """Base -> (v1) -> fine-tuned on the test set by slice and question type, plus the harder TK set."""
+def hero(base: str, finetuned: str, refs: list[str]) -> None:
+    """Base -> fine-tuned on the test set by slice and question type, plus the harder TK set."""
     from rlr.plots import plot_before_after
 
     labels = [
@@ -308,11 +309,8 @@ def hero(base: str, finetuned: str, refs: list[str], v1: str | None = None) -> N
         ("test", "qtype=search", "test: search queries"),
         ("test", "qtype=legal", "test: lawyer questions"),
         ("tk_hard", "all", "TK-hard: all"),
-        ("tk_hard", "qtype=everyday", "TK-hard: everyday"),
-        ("tk_hard", "qtype=search", "TK-hard: search"),
     ]
-    models = [base, finetuned, *refs] + ([v1] if v1 else [])
-    res = {m: load_summary(m)["results"] for m in models}
+    res = {m: load_summary(m)["results"] for m in [base, finetuned, *refs]}
     rows = []
     for qset, key, label in labels:
         if f"{qset}/chunk" not in res[finetuned] or key not in res[base].get(f"{qset}/chunk", {}):
@@ -324,12 +322,10 @@ def hero(base: str, finetuned: str, refs: list[str], v1: str | None = None) -> N
             "finetuned": res[finetuned][f"{qset}/chunk"][key]["ndcg@10"],
         }
         row.update({r: res[r][f"{qset}/chunk"][key]["ndcg@10"] for r in refs})
-        if v1:
-            row["v1"] = res[v1][f"{qset}/chunk"][key]["ndcg@10"]
         rows.append(row)
     df = pd.DataFrame(rows)
     df.to_csv(FIG / "before_after.csv", index=False, float_format="%.4f")
-    plot_before_after(df, FIG / "before_after.png", "e5-small (118M): base vs fine-tuned", "fine-tuned v2")
+    plot_before_after(df, FIG / "before_after.png", "e5-small (118M): base vs fine-tuned", finetuned)
     print(df.round(3).to_string(index=False))
 
 
@@ -337,7 +333,7 @@ def learning_curve(full_run: str, fraction_runs: list[str], refs: list[str]) -> 
     """Dev and test nDCG@10 of the chosen checkpoints vs number of LLM questions (final evaluation code)."""
     from rlr.plots import plot_learning_curve
 
-    eval_name = {full_run: "ft-e5-small", **{r: f"abl-{r}" for r in fraction_runs}}
+    eval_name = {name: f"abl-{name}" for name in [full_run, *fraction_runs]}
     rows = [
         {
             "run": "e5-small (no fine-tuning)",
@@ -373,17 +369,16 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--full-run")
     parser.add_argument("--fraction-runs", nargs="*", default=[])
     parser.add_argument("--refs", nargs="*", default=[])
+    parser.add_argument("--base", default="e5-small")
+    parser.add_argument("--model", default=PUBLISHED)
     args = parser.parse_args(argv)
     if args.what == "report":
         report(args.models, args.finetuned, args.focus)
     elif args.what == "hero":
-        if (RESULTS / "summary" / "ft-e5-small-v2.json").exists():
-            hero("e5-small", "ft-e5-small-v2", ["e5-large", "FRIDA"], v1="ft-e5-small")
-        else:
-            hero("e5-small", "ft-e5-small", ["e5-large", "FRIDA"])
+        hero(args.base, args.model, args.refs or ["e5-large", "FRIDA"])
     elif args.what == "learning":
         learning_curve(args.full_run, args.fraction_runs, args.refs)
-    if args.what == "lexical":
+    elif args.what == "lexical":
         print(lexical_overlap().to_string(index=False))
     elif args.what == "train":
         print(train_runs().to_string(index=False))

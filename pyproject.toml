@@ -8,6 +8,27 @@ version = "0.1.0"
 description = "Retrieval benchmark over Russian codes of law + fine-tuned small embedding model"
 requires-python = ">=3.11,<3.12"
 license = { text = "MIT" }
+# Unpinned, so the package is installable anywhere; requirements.txt holds the exact versions
+# (and the CUDA build of torch) that produced the published numbers.
+dependencies = [
+  "beautifulsoup4",
+  "bm25s",
+  "datasets",
+  "httpx",
+  "matplotlib",
+  "numpy",
+  "pandas",
+  "pystemmer",
+  "pyyaml",
+  "sentence-transformers>=6,<7",  # the code uses the 6.x module layout; exported models load in 3.x too
+  "torch",
+  "transformers",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+annotate = ["fastapi", "uvicorn"]   # golden annotation UI: python -m rlr annotate
+mteb = ["mteb"]                     # general-domain check: python -m rlr forgetting
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -32,3 +53,5 @@ addopts = "-m 'not slow'"
 
 [tool.ruff.lint.per-file-ignores]
 "scripts/*" = ["E501", "I001"]
+# kept byte-identical to the patch sent upstream, where the line limit is 122
+"mteb_task/*" = ["E501"]

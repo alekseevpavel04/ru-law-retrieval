@@ -3,20 +3,20 @@
 The v2 dev curves peaked at (or near) the last step, so the model is probably under-trained. Variants of the
 stage-1 winner: 3 epochs, batch 256 (more in-batch negatives, GradCache keeps memory flat), lr 5e-5.
 A variant replaces the current best only if it is better on dev; then seeds 43/44 are trained for it.
-Decisions are appended to results/v2_selection.json under "E".
+Decisions are appended to results/recipe_selection.json under "E".
 
-Usage: python scripts/run_v2_stage_e.py
+Usage: python scripts/run_recipe_stage_e.py
 """
 
 import copy
 import json
 
 import yaml
-from run_v2_grid import CFG_DIR, RESULTS, run
+from run_recipe import CFG_DIR, RESULTS, run
 
 
 def main() -> None:
-    sel_path = RESULTS / "v2_selection.json"
+    sel_path = RESULTS / "recipe_selection.json"
     sel = json.loads(sel_path.read_text(encoding="utf-8"))
     final = sel["final"]
     stage1_name = (

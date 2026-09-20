@@ -1,7 +1,7 @@
 {
- "model": "ft2-e5-small",
+ "model": "e5-small-ru-law-s42",
  "type": "dense",
- "path": "D:\\VScode_projects\\ru-law-retrieval\\models\\v2f_distill_from_v2e_ep3\\best",
+ "path": "models/v2f_distill_from_v2e_ep3/best",
  "query_prompt": "query: ",
  "doc_prompt": "passage: ",
  "max_seq_length": 512,

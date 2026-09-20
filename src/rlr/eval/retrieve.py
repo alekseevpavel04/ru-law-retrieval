@@ -108,6 +108,7 @@ class DenseEncoder:
         self.path = path
         self.query_prompt = query_prompt
         self.doc_prompt = doc_prompt
+        self.encoded_corpus = False  # False while every corpus view came from the embedding cache
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         torch_dtype = getattr(torch, dtype) if self.device == "cuda" else torch.float32
         try:
@@ -141,11 +142,24 @@ class DenseEncoder:
     def encode_queries(self, queries: list[str], batch_size: int = 128) -> np.ndarray:
         return self.encode(queries, self.query_prompt, batch_size)
 
+    def _identity(self) -> str:
+        """What the cached corpus embeddings actually depend on: the weights, the prompt, the length.
+
+        The display name is not enough: evaluating a new checkpoint under a name used before would
+        otherwise mix its queries with the previous checkpoint's document embeddings. Local
+        checkpoints are identified by their weight file (path + size + mtime), hub models by id.
+        """
+        parts = [self.path, self.doc_prompt, str(self.model.max_seq_length)]
+        weights = sorted(Path(self.path).glob("*.safetensors")) if Path(self.path).is_dir() else []
+        parts += [f"{p.name}:{p.stat().st_size}:{int(p.stat().st_mtime)}" for p in weights]
+        return "|".join(parts)
+
     def encode_corpus(self, corpus: Corpus, cache_key: str | None = None, batch_size: int = 32) -> np.ndarray:
-        """Encode corpus units; cached on disk by (model, view, prompt, max_len, texts hash)."""
-        h = hashlib.md5()
+        """Encode corpus units; cached on disk by (checkpoint, prompt, max_len, view, corpus texts)."""
+        h = hashlib.md5(usedforsecurity=False)
+        h.update(self._identity().encode())
         for t in corpus.texts:
-            h.update(t.encode())
+            h.update(b"\x00" + t.encode())
         key = cache_key or self.name.replace("/", "__")
         fname = f"{key}_{corpus.view}_{self.model.max_seq_length}_{h.hexdigest()[:10]}.npy"
         path = EMB_CACHE / fname
@@ -154,6 +168,7 @@ class DenseEncoder:
         emb = self.encode(corpus.texts, self.doc_prompt, batch_size)
         path.parent.mkdir(parents=True, exist_ok=True)
         np.save(path, emb)
+        self.encoded_corpus = True
         return emb
 
 

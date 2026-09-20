@@ -1,8 +1,0 @@
-a,b,set,protocol,metric,group,n_queries,mean_a,mean_b,delta,ci_low,ci_high,p_value,n_resamples
-ft-e5-small,e5-small,test,chunk,ndcg@10,all,728,0.84470,0.80199,0.04272,0.02769,0.05839,0.00000,10000
-ft-e5-small,e5-small,test,chunk,ndcg@10,code=gk,248,0.82992,0.76786,0.06206,0.03370,0.09125,0.00000,10000
-ft-e5-small,e5-small,test,chunk,ndcg@10,code=koap,154,0.85593,0.79667,0.05926,0.02816,0.09276,0.00000,10000
-ft-e5-small,e5-small,test,chunk,ndcg@10,code=sk,168,0.87713,0.86174,0.01540,-0.01585,0.04684,0.33700,10000
-ft-e5-small,e5-small,test,chunk,ndcg@10,code=tk,74,0.85567,0.84701,0.00866,-0.02921,0.04641,0.64920,10000
-ft-e5-small,e5-small,test,chunk,ndcg@10,code=zhk,35,0.79340,0.75238,0.04102,-0.01869,0.10635,0.19000,10000
-ft-e5-small,e5-small,test,chunk,ndcg@10,code=zozpp,49,0.79311,0.75401,0.03910,-0.02166,0.10236,0.20940,10000

@@ -83,7 +83,13 @@ def main(argv: list[str] | None = None) -> None:
         for r_i, r in enumerate(batch):
             g = art_index[r["doc_id"]]
             pos_score = float(best_m[r_i, g])
-            # hard negative: best non-gold chunk under the margin rule, fallback = lowest non-gold in top-k
+            # distillation candidates: best chunk of each of the top other articles
+            order = np.argsort(-best_m[r_i])
+            cands = [a for a in order if a != g][: args.n_cands]
+            # hard negative: best non-gold chunk under the margin rule; fallback = lowest non-gold chunk
+            # in the top-k. An article long enough to fill the whole top-k (koap-19.5 has 72 chunks)
+            # leaves no non-gold chunk there at all, so the last resort is the best chunk of the best
+            # other article - never an out-of-range index.
             neg_j, fallback = -1, -1
             for s, j in zip(top_scores[r_i], top_idx[r_i], strict=True):
                 if main_view.unit_article[j] == g:
@@ -91,12 +97,15 @@ def main(argv: list[str] | None = None) -> None:
                 fallback = j
                 if s < MARGIN * pos_score and neg_j < 0:
                     neg_j = j
-            stats["neg_margin_rule" if neg_j >= 0 else "neg_fallback"] += 1
-            neg_j = neg_j if neg_j >= 0 else fallback
+            if neg_j >= 0:
+                stats["neg_margin_rule"] += 1
+            elif fallback >= 0:
+                stats["neg_fallback"] += 1
+                neg_j = fallback
+            else:
+                stats["neg_best_other_article"] += 1
+                neg_j = int(idx_m[r_i, cands[0]])
             neg_art = main_view.unit_article[neg_j]
-            # distillation candidates: best chunk of each of the top other articles
-            order = np.argsort(-best_m[r_i])
-            cands = [a for a in order if a != g][: args.n_cands]
             out.append(
                 {
                     **{k: r[k] for k in ("qid", "text", "qtype", "code", "doc_id") if k in r},

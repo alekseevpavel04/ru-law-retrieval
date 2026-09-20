@@ -31,15 +31,21 @@ class ArticleNoDuplicatesBatchSampler(DefaultBatchSampler):
             used: set[str] = set()
             deferred: list[int] = []
             for pos, idx in enumerate(remaining):
+                if len(batch) == self.batch_size:
+                    deferred.extend(remaining[pos:])
+                    break
                 keys = self.row_keys[idx]
                 if used.isdisjoint(keys):
                     batch.append(idx)
                     used |= keys
-                    if len(batch) == self.batch_size:
-                        deferred.extend(remaining[pos + 1 :])
-                        break
                 else:
                     deferred.append(idx)
+            # If article conflicts left the batch under-full, fill it from the deferred rows instead
+            # of yielding a short batch: the number of batches then always equals __len__ (which the
+            # trainer uses to plan the schedule) and no row is silently dropped. With this data the
+            # fallback never fires - every run has total_steps == planned_total_steps.
+            while len(batch) < self.batch_size and deferred:
+                batch.append(deferred.pop(0))
             remaining = deferred
             if len(batch) < self.batch_size and self.drop_last:
                 return

@@ -34,7 +34,7 @@ MAX_CHARS = 4000
 
 
 def stable_seed(key: str, base: int = 42) -> int:
-    return base + int(hashlib.md5(key.encode()).hexdigest()[:8], 16) % 1_000_000
+    return base + int(hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()[:8], 16) % 1_000_000
 
 
 def article_parts(text: str, max_chars: int = MAX_CHARS) -> list[str]:

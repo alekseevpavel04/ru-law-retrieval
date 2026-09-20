@@ -41,6 +41,8 @@ def ngrams(tokens: list[str], n: int) -> set[tuple[str, ...]]:
 
 
 def check_length(question: str, qtype: str) -> str | None:
+    if qtype not in LENGTH_LIMITS:  # e.g. the "title" pairs, which are not generated questions
+        return None
     lo, hi = LENGTH_LIMITS[qtype]
     if not lo <= len(question.strip()) <= hi:
         return "length"

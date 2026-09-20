@@ -262,7 +262,9 @@ def build_tkhard_main() -> None:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="rlr build-dataset")
-    parser.add_argument("--train-raw", nargs="*", help="build only a train set from these raw files (v1 + v2)")
+    parser.add_argument(
+        "--train-raw", nargs="*", help="build only a train set from these raw files (one per generation pass)"
+    )
     parser.add_argument("--train-out", default="train_llm_v12")
     parser.add_argument("--tk-hard", action="store_true", help="build only the tk_hard test set")
     args = parser.parse_args(argv)

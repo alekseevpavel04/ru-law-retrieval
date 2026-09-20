@@ -1,7 +1,7 @@
 {
- "model": "ft2-e5-small-s43",
+ "model": "e5-small-ru-law",
  "type": "dense",
- "path": "D:\\VScode_projects\\ru-law-retrieval\\models\\v2f_distill_from_v2e_ep3_s43\\best",
+ "path": "models/v2f_distill_from_v2e_ep3_s43/best",
  "query_prompt": "query: ",
  "doc_prompt": "passage: ",
  "max_seq_length": 512,
@@ -9,10 +9,10 @@
  "params": 117653760,
  "dim": 384,
  "peak_mem_gb": 0.38,
- "total_s": 37.3,
- "encode_article_s": 6.3,
- "encode_chunk_s": 9.8,
- "encode_chunk_tkfmt_s": 10.3,
+ "total_s": 39.4,
+ "encode_article_s": 6.6,
+ "encode_chunk_s": 10.6,
+ "encode_chunk_tkfmt_s": 11.0,
  "results": {
   "dev/article": {
    "all": {

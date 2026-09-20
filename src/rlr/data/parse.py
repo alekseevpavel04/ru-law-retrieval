@@ -219,8 +219,8 @@ def write_jsonl(path: Path, rows: list[dict]) -> None:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def read_jsonl(path: Path) -> list[dict]:
-    with path.open(encoding="utf-8") as f:
+def read_jsonl(path: Path | str) -> list[dict]:
+    with Path(path).open(encoding="utf-8") as f:
         return [json.loads(line) for line in f if line.strip()]
 
 

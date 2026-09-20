@@ -15,7 +15,7 @@ import random
 from collections import defaultdict
 
 from rlr.data.parse import CORPUS, read_jsonl
-from rlr.env import DATA
+from rlr.env import DATA, RESULTS
 from rlr.gen.prompts import QUESTION_TYPES
 
 SPLITS = DATA / "splits"
@@ -32,6 +32,8 @@ def stratified_sample(ids_by_code: dict[str, list[str]], frac: float, rng: rando
 
 def proportional_sample(ids_by_code: dict[str, list[str]], n: int, rng: random.Random) -> list[str]:
     total = sum(len(v) for v in ids_by_code.values())
+    if total == 0:
+        return []
     out: list[str] = []
     for code in sorted(ids_by_code):
         ids = sorted(ids_by_code[code])
@@ -101,6 +103,21 @@ def make_splits(
     }
 
 
+def stats(splits: dict) -> dict:
+    """Article counts per split and slice (``data/`` is not committed, this summary is)."""
+    counts: dict[str, int] = defaultdict(int)
+    for it in splits["eval_items"]:
+        counts[f"{it['split']}/{it['slice']}"] += 1
+    return {
+        "seed": splits["seed"],
+        "held_out_frac": splits["held_out_frac"],
+        "min_chars_eval": splits["min_chars_eval"],
+        "held_out_articles": len(splits["held_out"]),
+        "train_articles": len(splits["train_articles"]),
+        "eval_articles": dict(sorted(counts.items())),
+    }
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="rlr splits")
     parser.add_argument("--seed", type=int, default=42)
@@ -110,14 +127,14 @@ def main(argv: list[str] | None = None) -> None:
     SPLITS.mkdir(parents=True, exist_ok=True)
     out = SPLITS / "splits.json"
     if out.exists() and not args.force:
-        raise SystemExit(f"{out} exists: splits are fixed once (use --force to recreate)")
-    splits = make_splits(read_jsonl(CORPUS / "articles.jsonl"), seed=args.seed)
-    out.write_text(json.dumps(splits, ensure_ascii=False, indent=1), encoding="utf-8")
-    counts: dict[tuple, int] = defaultdict(int)
-    for it in splits["eval_items"]:
-        counts[(it["split"], it["slice"])] += 1
-    print(f"held-out {len(splits['held_out'])}, train articles {len(splits['train_articles'])}")
-    print({f"{k[0]}/{k[1]}": v for k, v in counts.items()})
+        print(f"{out} exists: splits are fixed once (use --force to recreate); refreshing the stats file only")
+        splits = json.loads(out.read_text(encoding="utf-8"))
+    else:
+        splits = make_splits(read_jsonl(CORPUS / "articles.jsonl"), seed=args.seed)
+        out.write_text(json.dumps(splits, ensure_ascii=False, indent=1), encoding="utf-8")
+    s = stats(splits)
+    (RESULTS / "splits_stats.json").write_text(json.dumps(s, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(json.dumps(s, ensure_ascii=False, indent=1))
 
 
 if __name__ == "__main__":

@@ -7,11 +7,12 @@ summaries to ``results/summary/<model>.json``.
 Usage:
   python -m rlr baselines [--models e5-small bge-m3 ...] [--sets dev test] [--bm25]
   python -m rlr baselines --hybrid BM25 e5-large          # RRF of two saved runs
-  python -m rlr evaluate --path models/xxx --name ft-e5-small --query-prompt "query: " --doc-prompt "passage: "
+  python -m rlr evaluate --path models/xxx --name e5-small-ru-law --query-prompt "query: " --doc-prompt "passage: "
 """
 
 import argparse
 import json
+import os
 import time
 from pathlib import Path
 
@@ -28,12 +29,20 @@ DATASET = DATA / "dataset"
 RUNS = DATA / "runs"
 PROTOCOLS = ("article", "chunk")
 EXTERNAL = DATA / "external" / "tk_rf_rag_questions.jsonl"
-TK_RF_RAG_QUESTIONS = Path(r"D:\VScode_projects\github-portfolio\tk-rf-rag\eval\questions.jsonl")
 
 
 def prepare_external() -> None:
-    """tk-rf-rag questions -> our format (article numbers -> ``tk-<n>``), answerable only."""
-    if EXTERNAL.exists() or not TK_RF_RAG_QUESTIONS.exists():
+    """tk-rf-rag questions -> our format (article numbers -> ``tk-<n>``), answerable only.
+
+    The source file lives in the other repository; point ``TK_RF_RAG_QUESTIONS`` at its
+    ``eval/questions.jsonl`` (see ``.env.example``). Without it the ``external`` set is simply absent.
+    """
+    src = os.environ.get("TK_RF_RAG_QUESTIONS")
+    if EXTERNAL.exists() or not src:
+        return
+    TK_RF_RAG_QUESTIONS = Path(src)
+    if not TK_RF_RAG_QUESTIONS.exists():
+        print(f"TK_RF_RAG_QUESTIONS={src} does not exist: the 'external' query set is skipped")
         return
     rows = []
     for r in read_jsonl(TK_RF_RAG_QUESTIONS):
@@ -120,9 +129,10 @@ def eval_dense(
     per_query, timing = [], {}
     for protocol in protocols:
         corpus = load_corpus(protocol)
-        t0 = time.time()
+        t0, enc.encoded_corpus = time.time(), False
         unit_emb = enc.encode_corpus(corpus, cache_key=cache_key)
-        timing[f"encode_{protocol}_s"] = round(time.time() - t0, 1)
+        # on a cache hit this is not a measurement, so record nothing rather than a misleading 0.0 s
+        timing[f"encode_{protocol}_s"] = round(time.time() - t0, 1) if enc.encoded_corpus else None
         for qset, queries in query_sets.items():
             q_emb = enc.encode_queries([q["text"] for q in queries])
             run = dense_search(q_emb, unit_emb, corpus)
@@ -243,7 +253,8 @@ def main(argv: list[str] | None = None) -> None:
 
     for m in models:
         t0 = time.time()
-        torch.cuda.reset_peak_memory_stats() if torch.cuda.is_available() else None
+        if torch.cuda.is_available():
+            torch.cuda.reset_peak_memory_stats()
         enc = DenseEncoder(
             m["path"],
             m["query_prompt"],

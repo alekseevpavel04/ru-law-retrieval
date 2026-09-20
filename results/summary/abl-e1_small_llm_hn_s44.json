@@ -1,5 +1,5 @@
 {
- "model": "ft-e5-small-s44",
+ "model": "abl-e1_small_llm_hn_s44",
  "type": "dense",
  "path": "models/e1_small_llm_hn_s44/best",
  "query_prompt": "query: ",

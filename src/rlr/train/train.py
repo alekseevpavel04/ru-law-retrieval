@@ -209,7 +209,7 @@ def run(cfg: dict, max_steps: int = -1, use_wandb: bool = False, out_name: str |
         max_steps=max_steps,
         per_device_train_batch_size=cfg["batch_size"],
         learning_rate=cfg["lr"],
-        warmup_steps=cfg.get("warmup_ratio", 0.1),
+        warmup_ratio=cfg.get("warmup_ratio", 0.1),  # the ratio argument, not warmup_steps: same value, no ambiguity
         lr_scheduler_type="linear",
         weight_decay=cfg.get("weight_decay", 0.01),
         bf16=True,

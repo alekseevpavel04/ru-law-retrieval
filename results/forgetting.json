@@ -12,8 +12,8 @@
    }
   }
  },
- "ft-e5-small": {
-  "model": "ft-e5-small",
+ "abl-e1_small_llm_hn": {
+  "model": "abl-e1_small_llm_hn",
   "path": "models/e1_small_llm_hn/best",
   "seconds": 68.1,
   "tasks": {
@@ -38,8 +38,8 @@
    }
   }
  },
- "ft-e5-base": {
-  "model": "ft-e5-base",
+ "abl-e2_base_llm_hn": {
+  "model": "abl-e2_base_llm_hn",
   "path": "models/e2_base_llm_hn/best",
   "seconds": 91.2,
   "tasks": {
@@ -51,21 +51,8 @@
    }
   }
  },
- "ft2-e5-small": {
-  "model": "ft2-e5-small",
-  "path": "models/v2f_distill_from_v2e_ep3/best",
-  "seconds": 55.0,
-  "tasks": {
-   "RuBQRetrieval": {
-    "main_score": 0.66056,
-    "ndcg_at_10": 0.66056,
-    "recall_at_10": 0.7946,
-    "mrr_at_10": 0.6781495084243314
-   }
-  }
- },
- "ft-e5-small-v2": {
-  "model": "ft-e5-small-v2",
+ "e5-small-ru-law": {
+  "model": "e5-small-ru-law",
   "path": "models/v2f_distill_from_v2e_ep3_s43/best",
   "seconds": 55.9,
   "tasks": {

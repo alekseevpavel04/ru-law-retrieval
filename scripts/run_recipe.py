@@ -1,4 +1,4 @@
-"""v2 training grid with automatic, dev-only selection. Every decision is written to results/v2_selection.json.
+"""v2 training grid with automatic, dev-only selection. Every decision is written to results/recipe_selection.json.
 
 A: data + teacher        v1 questions + teacher | v1+v2 questions + teacher | + teacher noise filter (rank <= 50)
 B: format augmentation   best(A) + 50% of rows with chunks in the tk-rf-rag format (500/75, no code name)
@@ -8,7 +8,7 @@ D: seeds 43, 44 of the final recipe (for mean +- std)
 Selection metric: dev nDCG@10 averaged over two chunk formats (ours 600/90 and tk-rf-rag 500/75).
 A later stage is kept only if it beats the current best on dev. Test sets are not touched here.
 
-Usage: python scripts/run_v2_grid.py
+Usage: python scripts/run_recipe.py
 """
 
 import copy
@@ -49,7 +49,7 @@ BASE = {
 def run(cfg: dict, seed: int | None = None) -> dict:
     path = CFG_DIR / f"{cfg['name']}.yaml"
     path.write_text(
-        "# v2 grid (scripts/run_v2_grid.py)\n" + yaml.safe_dump(cfg, sort_keys=False, allow_unicode=True),
+        "# v2 grid (scripts/run_recipe.py)\n" + yaml.safe_dump(cfg, sort_keys=False, allow_unicode=True),
         encoding="utf-8",
     )
     cmd = [PY, "-m", "rlr", "train", str(path)] + (["--seed", str(seed)] if seed else [])
@@ -70,7 +70,7 @@ def run(cfg: dict, seed: int | None = None) -> dict:
 
 def main() -> None:
     log: dict = {"metric": "dev nDCG@10, mean over chunk views [chunk, chunk_tkfmt]", "stages": {}}
-    out = RESULTS / "v2_selection.json"
+    out = RESULTS / "recipe_selection.json"
 
     def save() -> None:
         out.write_text(json.dumps(log, indent=1, ensure_ascii=False), encoding="utf-8")

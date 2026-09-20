@@ -1,15 +1,29 @@
-# Paired bootstrap comparisons (fixed before looking at test results).
-# Best baseline = FRIDA (highest dev nDCG@10, chunk protocol, results/summary/FRIDA.json).
+# Paired-bootstrap comparisons (10 000 resamples over queries), one output: results/bootstrap.csv.
+#
+# The `headline` block was fixed before the published model was ever evaluated on test / tk_hard /
+# golden: the recipe was chosen on dev only (results/recipe_selection.json). The `context` block was added
+# afterwards and holds comparisons that are not headline claims (ablations and the BM25 hybrid).
 pairs:
-  - {a: ft-e5-small, b: e5-small, set: test, protocol: chunk}
-  - {a: ft-e5-small, b: FRIDA, set: test, protocol: chunk}
-  - {a: ft-e5-small, b: e5-large, set: test, protocol: chunk}
-  - {a: ft-e5-base, b: e5-base, set: test, protocol: chunk}
-  - {a: ft-e5-base, b: FRIDA, set: test, protocol: chunk}
-  - {a: ft-e5-small, b: e5-small, set: test, protocol: article}
-  - {a: ft-e5-small, b: FRIDA, set: test, protocol: article}
-  - {a: ft-e5-small, b: e5-small, set: golden, protocol: chunk}
-  - {a: ft-e5-small, b: FRIDA, set: golden, protocol: chunk}
-  - {a: "RRF(BM25+ft-e5-small)", b: ft-e5-small, set: test, protocol: chunk}
+  # --- headline: e5-small-ru-law (published checkpoint, seed 43) ---
+  - {a: e5-small-ru-law, b: e5-small, set: test, protocol: chunk}
+  - {a: e5-small-ru-law, b: e5-large, set: test, protocol: chunk}
+  - {a: e5-small-ru-law, b: FRIDA, set: test, protocol: chunk}
+  - {a: e5-small-ru-law, b: e5-small, set: test, protocol: article}
+  - {a: e5-small-ru-law, b: e5-small, set: test, protocol: chunk_tkfmt}
+  - {a: e5-small-ru-law, b: e5-small, set: tk_hard, protocol: chunk}
+  - {a: e5-small-ru-law, b: e5-large, set: tk_hard, protocol: chunk}
+  - {a: e5-small-ru-law, b: FRIDA, set: tk_hard, protocol: chunk}
+  - {a: e5-small-ru-law, b: e5-small, set: tk_hard, protocol: chunk_tkfmt}
+  - {a: e5-small-ru-law, b: e5-small, set: golden, protocol: chunk}
+  - {a: e5-small-ru-law, b: e5-small, set: test, protocol: chunk, by: code}
+
+  # --- context: what the second training stage added over the first recipe (E1 checkpoint) ---
+  - {a: e5-small-ru-law, b: abl-e1_small_llm_hn, set: test, protocol: chunk}
+  - {a: e5-small-ru-law, b: abl-e1_small_llm_hn, set: tk_hard, protocol: chunk}
+  - {a: e5-small-ru-law, b: abl-e1_small_llm_hn, set: golden, protocol: chunk}
+  - {a: abl-e1_small_llm_hn, b: e5-small, set: test, protocol: chunk}
+  - {a: abl-e2_base_llm_hn, b: e5-base, set: test, protocol: chunk}
+
+  # --- context: hybrid with BM25 (equal-weight RRF, and RRF with the BM25 weight tuned on dev) ---
+  - {a: "RRF(BM25+e5-small-ru-law)", b: e5-small-ru-law, set: test, protocol: chunk}
   - {a: "RRF(BM25+FRIDA)", b: FRIDA, set: test, protocol: chunk}
-  - {a: "RRF(BM25+ft-e5-small)", b: FRIDA, set: test, protocol: chunk}

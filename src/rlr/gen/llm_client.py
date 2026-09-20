@@ -51,7 +51,8 @@ class LLMClient:
                     return json.loads(raw), raw, usage
                 except json.JSONDecodeError:
                     return None, raw, usage
-            except httpx.HTTPError as exc:
+            except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
+                # a truncated or malformed body must not kill a 45-minute generation run
                 last_exc = exc
                 time.sleep(2 * (attempt + 1))
         raise RuntimeError(f"LLM request failed: {last_exc}")

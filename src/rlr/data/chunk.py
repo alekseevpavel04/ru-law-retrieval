@@ -79,20 +79,18 @@ def split_text(text: str, chunk_size: int, overlap: int) -> list[str]:
 
     pieces: list[str] = []
     current: list[str] = []
-    has_new = False  # current contains something not yet emitted
     for unit in _split_to_units(text, chunk_size):
         if current and _joined_len([*current, unit]) > chunk_size:
             pieces.append("\n".join(current))
+            # carry trailing units over as the overlap, unless that would already overflow
             tail: list[str] = []
             for prev in reversed(current):
                 if _joined_len([prev, *tail]) > overlap:
                     break
                 tail.insert(0, prev)
             current = tail if _joined_len([*tail, unit]) <= chunk_size else []
-            has_new = False
         current.append(unit)
-        has_new = True
-    if current and has_new:
+    if current:
         pieces.append("\n".join(current))
     return pieces
 

@@ -1,19 +1,19 @@
 """v2 stage F: distillation (T=0.02, the stage-C winner) on top of the stage-E winner and its seeds.
 
-Kept only if it improves dev over the stage-E winner. Appended to results/v2_selection.json under "F".
+Kept only if it improves dev over the stage-E winner. Appended to results/recipe_selection.json under "F".
 
-Usage: cd scripts && python run_v2_stage_f.py
+Usage: cd scripts && python run_recipe_stage_f.py
 """
 
 import copy
 import json
 
 import yaml
-from run_v2_grid import CFG_DIR, RESULTS, ROOT, run
+from run_recipe import CFG_DIR, RESULTS, ROOT, run
 
 
 def main() -> None:
-    sel_path = RESULTS / "v2_selection.json"
+    sel_path = RESULTS / "recipe_selection.json"
     sel = json.loads(sel_path.read_text(encoding="utf-8"))
     e = sel["stages"]["E"]
     if not e["kept"]:

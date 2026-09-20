@@ -1,5 +1,5 @@
 {
- "model": "ft2-e5-small-s44",
+ "model": "e5-small-ru-law-s44",
  "type": "dense",
  "path": "models/v2f_distill_from_v2e_ep3_s44/best",
  "query_prompt": "query: ",

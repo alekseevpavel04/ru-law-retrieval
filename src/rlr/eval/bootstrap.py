@@ -1,7 +1,7 @@
 """Paired bootstrap over queries for the difference of a metric between two systems.
 
 Usage:
-  python -m rlr bootstrap --a ft-e5-small --b e5-small --set test --protocol chunk [--by slice]
+  python -m rlr bootstrap --a e5-small-ru-law --b e5-small --set test --protocol chunk [--by slice]
   python -m rlr bootstrap --pairs-file configs/bootstrap_pairs.yaml
 """
 
@@ -26,8 +26,9 @@ def paired_bootstrap(a: np.ndarray, b: np.ndarray, n: int = N_RESAMPLES, seed: i
     idx = rng.integers(0, len(diff), size=(n, len(diff)))
     means = diff[idx].mean(axis=1)
     lo, hi = np.quantile(means, [alpha / 2, 1 - alpha / 2])
-    # two-sided p-value: share of resamples on the other side of zero
-    p = 2 * min((means <= 0).mean(), (means >= 0).mean())
+    # two-sided p-value: share of resamples on the other side of zero, with the usual +1 correction
+    # so that it is never reported as exactly 0 (the floor is 2 / (n + 1))
+    p = 2 * (min((means <= 0).sum(), (means >= 0).sum()) + 1) / (n + 1)
     return {
         "n_queries": len(diff),
         "mean_a": float(np.mean(a)),

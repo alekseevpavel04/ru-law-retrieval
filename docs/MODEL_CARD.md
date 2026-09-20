@@ -45,9 +45,9 @@ model-index:
 
 `intfloat/multilingual-e5-small` (118M параметров, 384 измерения), дообученная для поиска статей законов РФ по вопросам людей: на синтетических вопросах к статьям Трудового, Гражданского, Жилищного кодексов и КоАП, с дистилляцией знаний из `ai-forever/FRIDA` (823M). Всё обучение занимает 19 минут на одной RTX 3070.
 
-**Результат:** на тесте [RuLawRetrieval](https://huggingface.co/datasets/alekseevpavel04/ru-law-retrieval) nDCG@10 растёт с 0.802 до **0.859** (+0.057, 95% ДИ [+0.042; +0.073]). Это уровень `multilingual-e5-large` (560M, 0.859; разница +0.001 [−0.016; +0.017], то есть модели статистически неотличимы) при задержке на CPU в 6.7 раза меньше и индексе в 2.7 раза меньше. На трудном наборе бытовых и поисковых вопросов по ТК прирост ещё больше: 0.710 → **0.820** (+0.109 [+0.091; +0.128]).
+**Результат:** на тесте [RuLawRetrieval](https://huggingface.co/datasets/alekseevpavel04/ru-law-retrieval) nDCG@10 растёт с 0.802 до **0.859** (+0.057, 95% ДИ [+0.042; +0.073]). Это уровень `multilingual-e5-large` (560M, 0.859; разница +0.001 [−0.016; +0.017], то есть модели статистически неотличимы) при задержке на CPU в 6.8 раза меньше и индексе в 2.7 раза меньше. На трудном наборе бытовых и поисковых вопросов по ТК прирост ещё больше: 0.710 → **0.820** (+0.109 [+0.091; +0.128]).
 
-*English summary: `multilingual-e5-small` fine-tuned on synthetic Russian legal questions with knowledge distillation from FRIDA (823M). On the RuLawRetrieval test set nDCG@10 goes 0.802 -> 0.859, matching `multilingual-e5-large` (560M) while being 6.7x faster on CPU; on the harder TK set 0.710 -> 0.820. Training takes 19 minutes on one RTX 3070. The largest gains are on colloquial questions (0.569 -> 0.701).*
+*English summary: `multilingual-e5-small` fine-tuned on synthetic Russian legal questions with knowledge distillation from FRIDA (823M). On the RuLawRetrieval test set nDCG@10 goes 0.802 -> 0.859, matching `multilingual-e5-large` (560M) while being 6.8x faster on CPU; on the harder TK set 0.710 -> 0.820. Training takes 19 minutes on one RTX 3070. The largest gains are on colloquial questions (0.569 -> 0.701).*
 
 Код, данные и все эксперименты: [github.com/alekseevpavel04/ru-law-retrieval](https://github.com/alekseevpavel04/ru-law-retrieval).
 
@@ -86,10 +86,10 @@ print(q @ d.T)  # ст. 81 уверенно первая; у исходной e5
 
 | Модель | Параметры | test nDCG@10 | TK-hard nDCG@10 | CPU, мс/запрос |
 |---|---:|---:|---:|---:|
-| intfloat/multilingual-e5-small (исходная) | 118M | 0.802 | 0.710 | 21.8 |
-| **эта модель** | 118M | **0.859** | **0.820** | 21.7 |
-| intfloat/multilingual-e5-large | 560M | 0.859 | 0.820 | 145.2 |
-| ai-forever/FRIDA (лучшая из 12 baseline) | 823M | 0.878 | 0.854 | 272.2 |
+| intfloat/multilingual-e5-small (исходная) | 118M | 0.802 | 0.710 | 25.3 |
+| **эта модель** | 118M | **0.859** | **0.820** | 23.2 |
+| intfloat/multilingual-e5-large | 560M | 0.859 | 0.820 | 158.5 |
+| ai-forever/FRIDA (лучшая из 12 baseline) | 823M | 0.878 | 0.854 | 270.2 |
 
 | Сравнение (test, chunk) | Δ nDCG@10 [95% ДИ] |
 |---|---|
@@ -108,14 +108,14 @@ print(q @ d.T)  # ст. 81 уверенно первая; у исходной e5
 
 Прочее:
 - три сида (42, 43, 44): test 0.855 ± 0.008, TK-hard 0.816 ± 0.008; опубликован чекпоинт с лучшим dev (seed 43);
-- golden (174 вопроса с перепроверенной и множественной разметкой): 0.894 против 0.831 у исходной;
+- golden (174 вопроса с перепроверенной и множественной разметкой, размечено ИИ-агентом): 0.894 против 0.831 у исходной;
 - MTEB RuBQRetrieval (общий домен, не про право): 0.659 против 0.686 у исходной.
 
 Все числа лежат в `results/` репозитория проекта.
 
 ## Как обучена
 
-Двухэтапный рецепт, все решения приняты по dev (`results/v2_selection.json`):
+Двухэтапный рецепт, все решения приняты по dev (`results/recipe_selection.json`):
 
 1. **Контрастное обучение** (`CachedMultipleNegativesRankingLoss`, батч 128, мини-батч 32, 3 эпохи, lr 3e-5, bf16, таблица эмбеддингов словаря заморожена):
    - 16 тыс. синтетических вопросов (Qwen3-8B, два прохода с разными промптами) к 3.2 тыс. статей четырёх кодексов, три стиля: бытовой, поисковый, юридический;
