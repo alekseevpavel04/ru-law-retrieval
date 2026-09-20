@@ -78,7 +78,10 @@ def plot_run(summary: dict, path: Path) -> None:
     if not log.empty:
         ax.plot(log["step"], log["loss"], color=SERIES[0], alpha=0.25, linewidth=1.2, label="loss (raw)")
         ax.plot(log["step"], ema(log["loss"].to_numpy()), color=SERIES[0], label="loss (EMA)")
-    ax.set_title("Train loss (CachedMNRL)")
+    loss_name = {"distill_kl": "DistillKLDivLoss (teacher FRIDA)"}.get(
+        summary["config"].get("loss", "mnrl"), "CachedMNRL"
+    )
+    ax.set_title(f"Train loss ({loss_name})")
     ax.set_xlabel("step")
     ax.legend(loc="upper right")
 
@@ -114,11 +117,11 @@ def plot_run(summary: dict, path: Path) -> None:
     )
     ax.axhline(dev["ndcg@10"].iloc[0], color=MUTED, linewidth=1, linestyle="--")
     ax.annotate(
-        "base model",
-        (dev["step"].iloc[-1], dev["ndcg@10"].iloc[0]),
+        "start checkpoint" if summary["config"].get("stage1") else "base model",
+        (dev["step"].iloc[0], dev["ndcg@10"].iloc[0]),
         textcoords="offset points",
-        xytext=(-4, -12),
-        ha="right",
+        xytext=(4, -12),
+        ha="left",
         color=MUTED,
         fontsize=8,
     )
@@ -126,8 +129,11 @@ def plot_run(summary: dict, path: Path) -> None:
     ax.set_xlabel("step")
     ax.legend(loc="lower right")
 
+    start = summary["config"].get("stage1") or Path(summary["base_model"]).name
+    if "/" in summary["base_model"] and not Path(summary["base_model"]).exists():
+        start = summary["base_model"].split("/")[-1]
     fig.suptitle(
-        f"{summary['name']}  ·  {summary['base_model'].split('/')[-1]}  ·  "
+        f"{summary['name']}  ·  from {start}  ·  "
         f"{summary['train_rows']} pairs  ·  {summary['train_seconds'] / 60:.1f} min  ·  "
         f"peak {summary['peak_mem_gb']} GB",
         x=0.01,

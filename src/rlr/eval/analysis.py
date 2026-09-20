@@ -166,6 +166,10 @@ def train_runs(prefix: str = "") -> pd.DataFrame:
         )
     df = pd.DataFrame(rows)
     df.to_csv(RESULTS / "train_runs.csv", index=False, float_format="%.4f")
+    from rlr.plots import plot_run
+
+    for s in summaries:  # redraw per-run figures, so style fixes apply to older runs too
+        plot_run(s, FIG / "train" / f"{s['name']}.png")
     for exp in sorted({s["config"].get("experiment", "") for s in summaries}):
         group = [s for s in summaries if s["config"].get("experiment", "") == exp]
         if group:
