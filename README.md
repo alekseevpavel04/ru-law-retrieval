@@ -23,7 +23,7 @@
 
 - **Модель:** [alekseevpavel04/multilingual-e5-small-ru-law](https://huggingface.co/alekseevpavel04/multilingual-e5-small-ru-law) — [карточка](docs/MODEL_CARD.md)
 - **Датасет:** [alekseevpavel04/ru-law-retrieval](https://huggingface.co/datasets/alekseevpavel04/ru-law-retrieval), формат MTEB, сплиты train / dev / test / golden / tk_hard — [карточка](docs/DATASET_CARD.md)
-- **Задача `RuLawRetrieval` для MTEB:** [PR embeddings-benchmark/mteb#5496](https://github.com/embeddings-benchmark/mteb/pull/5496) на рассмотрении — [`mteb_task/`](mteb_task/)
+- **Задача `RuLawRetrieval` в формате MTEB:** класс задачи и патч в [`mteb_task/`](mteb_task/)
 - **Внедрение:** [tk-rf-rag PR #1](https://github.com/alekseevpavel04/tk-rf-rag/pull/1) (смержен)
 - Все решения и их причины: [`docs/DECISIONS.md`](docs/DECISIONS.md). Все числа и графики: [`results/`](results/), сводные таблицы — [`results/readme_tables.md`](results/readme_tables.md).
 
