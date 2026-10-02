@@ -2,8 +2,8 @@
 # Start llama.cpp server with one of the generator models (Git Bash on Windows).
 # Usage: scripts/llm_server.sh qwen|yandex [parallel_slots]
 set -euo pipefail
-LLAMA="${LLAMA_DIR:-/d/VScode_projects/llama.cpp/b11052}/llama-server.exe"
-MODELS="${LLM_MODELS_DIR:-D:/VScode_projects/llm-models}"
+LLAMA="${LLAMA_DIR:-/d/VScode_projects/assets/tools/llama.cpp/b11052}/llama-server.exe"
+MODELS="${LLM_MODELS_DIR:-D:/VScode_projects/assets/llm}"
 SLOTS="${2:-3}"
 CTX_PER_SLOT=3072
 case "$1" in

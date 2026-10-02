@@ -19,12 +19,12 @@ _DEFAULTS = {
 
 # Heavy caches on the development machine live on drive D (drive C is nearly full). These defaults
 # are applied only when that location exists, so a clone elsewhere keeps the standard cache paths.
-_CACHE_ROOT = Path(r"D:\VScode_projects")
+_CACHE_ROOT = Path(r"D:\VScode_projects\assets")
 _CACHE_DEFAULTS = {
-    "HF_HOME": _CACHE_ROOT / "hf-cache",
-    "PIP_CACHE_DIR": _CACHE_ROOT / "pip-cache",
-    "UV_CACHE_DIR": _CACHE_ROOT / "uv-cache",
-    "MTEB_CACHE": _CACHE_ROOT / "mteb-cache",
+    "HF_HOME": _CACHE_ROOT / "huggingface",
+    "PIP_CACHE_DIR": _CACHE_ROOT / "cache" / "pip",
+    "UV_CACHE_DIR": _CACHE_ROOT / "cache" / "uv",
+    "MTEB_CACHE": _CACHE_ROOT / "cache" / "mteb",
 }
 
 
